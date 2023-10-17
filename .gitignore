@@ -1,1 +1,5 @@
 /bochs.log
+/.vscode
+/obj
+/GNUmakefile
+/kern/Makefrag
