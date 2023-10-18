@@ -379,6 +379,11 @@ int process_command(int number_of_arguments, char** arguments)
 {
 	//TODO: [PROJECT'23.MS1 - #2] [1] PLAY WITH CODE! - process_command
 	//Comment the following line before start coding...
-	panic("process_command is not implemented yet");
-	return 0;
+	// panic("process_command is not implemented yet");
+	for (int i = 0; i < NUM_OF_COMMANDS; i++) {
+		if (strcmp(arguments[0], commands[i].name) == 0 && number_of_arguments-1 == commands[i].num_of_args) {
+			return i;
+		}
+	}
+	return -3;
 }
