@@ -11,6 +11,7 @@
 #include <kern/tests/tst_handler.h>
 #include "commands.h"
 
+
 // ********** This DosKey supported readline function is implemented by **********
 // ********** Abdullah Najuib ( FCIS T.A.), 3rd year student, FCIS, 2012
 
@@ -297,7 +298,7 @@ int execute_command(char *command_string)
 	char *arguments[MAX_ARGUMENTS];
 
 
-	strsplit(command_string, WHITESPACE, arguments, &number_of_arguments) ;
+	strsplit(command_string, WHITESPACE, arguments, &number_of_arguments);
 	if (number_of_arguments == 0)
 		return 0;
 
@@ -379,11 +380,78 @@ int process_command(int number_of_arguments, char** arguments)
 {
 	//TODO: [PROJECT'23.MS1 - #2] [1] PLAY WITH CODE! - process_command
 	//Comment the following line before start coding...
-	// panic("process_command is not implemented yet");
+	//char command_line[1024];
+
+    int found=-1;
+
+	str2lower(arguments[0], arguments[0]);
 	for (int i = 0; i < NUM_OF_COMMANDS; i++) {
-		if (strcmp(arguments[0], commands[i].name) == 0 && number_of_arguments-1 == commands[i].num_of_args) {
-			return i;
+		//command found with correct no. of arguments
+		if (strcmp(arguments[0], commands[i].name) == 0 ){
+			//command found with correct no. of arguments
+			if(number_of_arguments-1 == commands[i].num_of_args) {
+				found=1;
+				return i;
+			}
+			//command found but with invalid no. of arguments
+			else 
+			{
+				found=1;
+				if (commands[i].num_of_args == -1) {
+					return i;
+				}
+				return CMD_INV_NUM_ARGS;
+			}
 		}
+
 	}
-	return -3;
+	int matched_num_of_chars=0;
+	if(found==-1){
+		//this loop loops on commands struct
+		for(int i=0;i<NUM_OF_COMMANDS; i++){
+			//  char *current_command=(char *)commands[i].name;
+			//  char *passed_command=arguments[0];
+			int command_size=strlen(commands[i].name);
+			int passed_command_length=strlen(arguments[0]);
+			if(strlen(commands[i].name)>=passed_command_length)//clock clk
+			{
+				for(int j=0;j<command_size;j++ ){
+					for(int k=0;k<passed_command_length;k++){
+						if(commands[i].name[j]==arguments[0][k])
+						{
+							matched_num_of_chars +=1;
+							break;
+						}
+						else{
+							break;
+						}
+					}
+				}
+
+				
+				struct Command* theCommand;
+				theCommand->name = commands[i].name;
+				theCommand->description = commands[i].description;
+				theCommand->function_to_execute = commands[i].function_to_execute;
+				theCommand->num_of_args = commands[i].num_of_args;
+				// theCommand->prev_next_info = LIST_LAST(&foundCommands)->prev_next_info;
+				LIST_INSERT_TAIL(&foundCommands, theCommand);
+				
+			}
+			else{
+				return CMD_INVALID;
+			}
+		}
+		return CMD_MATCHED;
+	} 
+	else{
+		return CMD_INVALID;
+	}
+
+
+
+
+	return 0;
 }
+
+

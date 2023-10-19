@@ -337,8 +337,9 @@ void sys_allocate_chunk(uint32 virtual_address, uint32 size, uint32 perms)
 void* sys_sbrk(int increment)
 {
 	//Comment the following line before start coding...
-	panic("not implemented yet");
-	return NULL;
+	return syscall(SYS_Increm,0,0,0,0,0);
+	//panic("not implemented yet");
+	
 }
 
 void sys_free_user_mem(uint32 virtual_address, uint32 size)

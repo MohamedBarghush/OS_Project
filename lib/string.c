@@ -311,10 +311,55 @@ int strsplit(char *string, char *SPLIT_CHARS, char **argv, int * argc)
 
 
 /*2024*/
+// char* str2lower(char *dst, const char *src)
+// {
+// 	//TODO: [PROJECT'23.MS1 - #1] [1] PLAY WITH CODE! - str2lower
+// 	//Comment the following line before start coding...
+// 	panic("process_command is not implemented yet");
+// 	return NULL;
+// }
+
 char* str2lower(char *dst, const char *src)
 {
-	//TODO: [PROJECT'23.MS1 - #1] [1] PLAY WITH CODE! - str2lower
-	//Comment the following line before start coding...
-	panic("process_command is not implemented yet");
-	return NULL;
+    //TODO: [PROJECT'23.MS1 - #1] [1] PLAY WITH CODE! - str2lower
+    //Comment the following line before start coding...
+    //    panic("process_command is not implemented yet");
+    //    return NULL;
+
+        unsigned int length_of_entered_string=strlen(src);
+        char *entered_string_to_get_length=src;
+        char most_ascii_in_lower='z';
+        char less_ascii_in_lower='a';
+
+		// cprintf(entered_string_to_get_length[0]);
+		// cprintf("This character is: %c \n",entered_string_to_get_length[0]);
+		for(int j=0; j<length_of_entered_string; j++)
+		{
+			if(entered_string_to_get_length[j]>=less_ascii_in_lower && entered_string_to_get_length[j]<=most_ascii_in_lower)
+			{
+				//lower
+				
+				dst[j] = entered_string_to_get_length[j];
+
+
+			}
+
+			else if((entered_string_to_get_length[j]>=(less_ascii_in_lower-32)) && ((entered_string_to_get_length[j]<=(most_ascii_in_lower-32))))
+			{
+			// upper
+
+				dst[j] = entered_string_to_get_length[j] +32;
+
+			}
+
+			else{
+
+
+				dst[j] = entered_string_to_get_length[j];
+
+
+
+			}
+		}
+		return dst;
 }

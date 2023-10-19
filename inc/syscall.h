@@ -53,6 +53,7 @@ enum
 	SYS_check_WS_list,
 	/*2024*/
 	//TODO: [PROJECT'23.MS1 - #3] [2] SYSTEM CALLS - Add suitable code here
+	SYS_Increm,
 
 	//=====================================================================
 	NSYSCALLS

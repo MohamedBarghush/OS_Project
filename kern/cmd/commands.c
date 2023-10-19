@@ -74,7 +74,7 @@ struct Command commands[] =
 		//********************************//
 		/* COMMANDS WITH THREE ARGUMENTS */
 		//********************************//
-		{ "rub", "reads block of bytes from specific location in given environment" ,command_readuserblock, 3},
+		{ "rub", "reafds block of bytes from specific location in given environment" ,command_readuserblock, 3},
 
 		//**************************************//
 		/* COMMANDS WITH AT LEAST ONE ARGUMENT */
