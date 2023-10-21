@@ -311,20 +311,16 @@ int strsplit(char *string, char *SPLIT_CHARS, char **argv, int * argc)
 
 
 /*2024*/
-// char* str2lower(char *dst, const char *src)
-// {
-// 	//TODO: [PROJECT'23.MS1 - #1] [1] PLAY WITH CODE! - str2lower
-// 	//Comment the following line before start coding...
-// 	panic("process_command is not implemented yet");
-// 	return NULL;
-// }
-
 char* str2lower(char *dst, const char *src)
 {
     //TODO: [PROJECT'23.MS1 - #1] [1] PLAY WITH CODE! - str2lower
     //Comment the following line before start coding...
     //    panic("process_command is not implemented yet");
     //    return NULL;
+
+		if (&dst == NULL || src == NULL) {
+			return NULL;
+		}
 
         unsigned int length_of_entered_string=strlen(src);
         char *entered_string_to_get_length=src;

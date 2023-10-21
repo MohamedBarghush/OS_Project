@@ -87,17 +87,25 @@ void print_blocks_list(struct MemBlock_LIST list)
 //==================================
 void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpace)
 {
-	//=========================================
-	//DON'T CHANGE THESE LINES=================
-	if (initSizeOfAllocatedSpace == 0)
-		return ;
-	//=========================================
-	//=========================================
+    // struct BlockMetaData* initblocK1= NULL;
+    //=========================================
+    //DON'T CHANGE THESE LINES=================
+    if (initSizeOfAllocatedSpace == 0)
+        return ;
+    //=========================================
+    //=========================================
+    // if (initblocK1==NULL){
+    //     cprintf("Dynamic allocation failed.\n");
+    // }
+	// initblocK1 = (struct BlockMetaData*)daStart;
+    // initblocK1->size=initSizeOfAllocatedSpace;
+    // initblocK1->is_free=1;
+    // initblocK1->prev_next_info.le_prev=initblocK1;
+    // initblocK1->prev_next_info.le_next=NULL;
 
-	//TODO: [PROJECT'23.MS1 - #5] [3] DYNAMIC ALLOCATOR - initialize_dynamic_allocator()
-	panic("initialize_dynamic_allocator is not implemented yet");
+
+    // MemBlock_LIST.lh_first=initblocK1;
 }
-
 //=========================================
 // [4] ALLOCATE BLOCK BY FIRST FIT:
 //=========================================
