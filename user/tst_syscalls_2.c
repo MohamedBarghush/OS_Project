@@ -15,9 +15,9 @@ _main(void)
 	sys_run_env(ID3);
 	env_sleep(10000);
 
-	if (gettst() != 0)
+	if (gettst() != 0) {
 		cprintf("\ntst_syscalls_2 Failed.\n");
-	else
+	} else
 		cprintf("\nCongratulations... tst system calls #2 completed successfully\n");
 
 }

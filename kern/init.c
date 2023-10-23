@@ -25,7 +25,7 @@
 
 extern int sys_calculate_free_frames();
 
-//Functions Declaration 0
+//Functions Declaration
 //======================
 void print_welcome_message();
 //=======================================

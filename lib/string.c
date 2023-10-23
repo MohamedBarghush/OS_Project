@@ -318,12 +318,12 @@ char* str2lower(char *dst, const char *src)
     //    panic("process_command is not implemented yet");
     //    return NULL;
 
-		if (&dst == NULL || src == NULL) {
+		if (src == NULL) {
 			return NULL;
 		}
 
         unsigned int length_of_entered_string=strlen(src);
-        char *entered_string_to_get_length=src;
+        const char *entered_string_to_get_length=src;
         char most_ascii_in_lower='z';
         char less_ascii_in_lower='a';
 
@@ -334,7 +334,7 @@ char* str2lower(char *dst, const char *src)
 			if(entered_string_to_get_length[j]>=less_ascii_in_lower && entered_string_to_get_length[j]<=most_ascii_in_lower)
 			{
 				//lower
-				
+
 				dst[j] = entered_string_to_get_length[j];
 
 

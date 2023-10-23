@@ -20,8 +20,6 @@ syscall(int num, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uint32 a5)
 	// potentially change the condition codes and arbitrary
 	// memory locations.
 
-	cprint("here in kernel sys call");
-
 	asm volatile("int %1\n"
 		: "=a" (ret)
 		: "i" (T_SYSCALL),
@@ -340,24 +338,23 @@ void* sys_sbrk(int increment)
 {
 	//Comment the following line before start coding...
 	//panic("not implemented yet");
-	cprint("It works now");
-	return syscall(SYS_Increm,increment,0,0,0,0);
-	
+	uint32 result = syscall(SYS_sbrk, increment, 0, 0, 0, 0);
+	return (void*)result;
 }
 
 void sys_free_user_mem(uint32 virtual_address, uint32 size)
 {
 	//Comment the following line before start coding...
 	// panic("not implemented yet");
-	cprint("It works now");
-	return syscall(SYS_free_user_mem, virtual_address, size,0,0,0);
+	syscall(SYS_free_user_mem, virtual_address, size,0,0,0);
+//	return ;
 }
 
 void sys_allocate_user_mem(uint32 virtual_address, uint32 size)
 {
 	//Comment the following line before start coding...
 	// panic("not implemented yet");
-	cprint("It works now");
-	return syscall(SYS_allocate_user_mem, virtual_address, size,0,0,0);
+	syscall(SYS_allocate_user_mem, virtual_address, size,0,0,0);
+//	return ;
 }
 

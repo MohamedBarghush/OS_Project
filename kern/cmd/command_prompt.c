@@ -381,56 +381,53 @@ int process_command(int number_of_arguments, char** arguments)
 	//TODO: [PROJECT'23.MS1 - #2] [1] PLAY WITH CODE! - process_command
 	//Comment the following line before start coding...
 
-    int found=0;
+	int found = 0;
 
 	char *matched_commands_with_most_size[NUM_OF_COMMANDS];
 	int arr_size = 0;
 
-	// Convert the input command to lowercase
-	str2lower(arguments[0],arguments[0]);
+	// 7wl le lower
+	str2lower(arguments[0], arguments[0]);
 
 	for (int i = 0; i < NUM_OF_COMMANDS; i++) {
 		if (strcmp(arguments[0], commands[i].name) == 0) {
-			if (number_of_arguments - 1 == commands[i].num_of_args || commands[i].num_of_args == -1) {
+			if (number_of_arguments - 1 == commands[i].num_of_args) {
 				return i;
 			} else {
+				if (commands[i].num_of_args == -1 && number_of_arguments >= 1) {
+					return i;
+				}
 				return CMD_INV_NUM_ARGS;
 			}
-		} else {
-			found = -1;
 		}
 	}
 
-	if (found == -1) {
-		LIST_INIT(&foundCommands);
+	found = 0;
+	LIST_INIT(&foundCommands); // ebdaa el list men el awl
 
-		for (int i = 0; i < NUM_OF_COMMANDS; i++) {
-			int foundLength = 0;
-			int pauseIndex = 0;
-			for(int j = 0; j < strlen(arguments[0]); j++) {
-				for(int k = pauseIndex; k < strlen(commands[i].name); k++) {
-					if (arguments[0][j] == commands[i].name[k]) {
-						foundLength ++;
-						pauseIndex = k;
-						if(foundLength == strlen(arguments[0])) {
-							LIST_INSERT_TAIL(&foundCommands, &commands[i]);
-							foundLength = 0;
-							pauseIndex = 0;
-							break;
-						}
-					}
-				}
-				if (pauseIndex == 0) {
-					break;
-				}
+	for (int i = 0; i < NUM_OF_COMMANDS; i++) {
+		int name_length = strlen(commands[i].name);
+		int arg_length = strlen(arguments[0]);
+		int command_name_loop_index = 0, argument_loop_index = 0; // e3ml variable 3alashan nloop beha
+
+		while (command_name_loop_index < name_length && argument_loop_index < arg_length) {
+			if (commands[i].name[command_name_loop_index] == arguments[0][argument_loop_index]) {
+				argument_loop_index++;
 			}
+			command_name_loop_index++;
 		}
-		
+
+		if (argument_loop_index == arg_length) {
+			LIST_INSERT_TAIL(&foundCommands, &commands[i]);
+			found = 1;
+		}
+	}
+
+	if (found) {
 		return CMD_MATCHED;
 	} else {
 		return CMD_INVALID;
 	}
-	return 0;
 }
 
 

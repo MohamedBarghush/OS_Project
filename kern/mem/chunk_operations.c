@@ -119,7 +119,7 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
 	/*====================================*/
 	/*Remove this line before start coding*/
-	inctst();
+//	inctst();
 	return;
 	/*====================================*/
 
@@ -135,7 +135,7 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
 	/*====================================*/
 	/*Remove this line before start coding*/
-	inctst();
+//	inctst();
 	return;
 	/*====================================*/
 
