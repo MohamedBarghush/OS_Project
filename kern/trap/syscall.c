@@ -510,7 +510,7 @@ void* sys_sbrk(int increment)
 }
 
 int ErrorDetection (uint32 a1, uint32 a2) { // el function bta3tna 3lshan ntshek 3la el errors
-	if (a1 == 0 || a2 == 0 || a1 >= USER_LIMIT || a1+a2 >= USER_LIMIT || a2 > KERNEL_STACK_SIZE || a1 < VPT) {
+	if (a1 == 0 || a2 == 0 || a1 >= USER_LIMIT || a1+a2 >= USER_LIMIT || a2 > KERNEL_STACK_SIZE) {
 		// condition 8lt = kill
 		sched_kill_env(curenv->env_id);
 		return -E_INVAL;  // inc/error.h -3 byrg3 error
@@ -535,12 +535,14 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		return (uint32)sys_sbrk(a1);
 
 	case SYS_allocate_user_mem:
+		ErrorDetection (a1,a2);
 		sys_allocate_user_mem(a1, a2);
-		return ErrorDetection (a1,a2);
+		return 0;
 
 	case SYS_free_user_mem:
+		ErrorDetection (a1,a2);
 		sys_free_user_mem(a1, a2);
-		return ErrorDetection (a1,a2);
+		return 0;
 	//=====================================================================
 	case SYS_cputs:
 		sys_cputs((const char*)a1,a2,(uint8)a3);
