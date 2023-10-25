@@ -445,7 +445,6 @@ int command_run_program(int number_of_arguments, char **arguments)
 {
 	//[1] Create and initialize a new environment for the program to be run
 	struct Env *env = CreateEnv(number_of_arguments, arguments);
-	cprintf("Running here");
 
 	if(env == NULL) return 0;
 	cprintf("\nEnvironment Id= %d\n",env->env_id);

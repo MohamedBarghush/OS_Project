@@ -59,7 +59,6 @@ int tst_handler(int number_of_arguments, char **arguments)
 	{
 		if (strcmp(arguments[0], tests[i].name) == 0)
 		{
-			cprintf("This test was found");
 			test_found = 1;
 			break;
 		}

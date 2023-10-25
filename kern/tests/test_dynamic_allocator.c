@@ -62,6 +62,7 @@ int test_initial_alloc(int ALLOC_STRATEGY)
 	int eval = 0;
 	bool is_correct = 1;
 	int initAllocatedSpace = 3*Mega;
+//	cprintf("\n MEGA SIZE: %d \n", initAllocatedSpace); // Mohamed made this
 	initialize_dynamic_allocator(KERNEL_HEAP_START, initAllocatedSpace);
 
 	void * va ;
