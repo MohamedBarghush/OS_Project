@@ -148,7 +148,7 @@ void *alloc_block_FF(uint32 size)
 	myBlock->prev_next_info.le_next = NULL;
 
 	LIST_INSERT_AFTER(&memBlockList, myOldBlock, myBlock);
-	cprintf("My thing is: %p and %p \n", myOldBlock, myBlock);
+//	cprintf("My thing is: %p and %p \n", myOldBlock, myBlock);
 	return (void *)(myBlock + sizeOfMetaData());
 }
 //=========================================
@@ -187,35 +187,32 @@ void free_block(void *va)
 	//TODO: [PROJECT'23.MS1 - #7] [3] DYNAMIC ALLOCATOR - free_block()
 //	panic("free_block is not implemented yet");
 	if (va == NULL) {
-		return;
-	}
+	        return;
+	    }
 
-	struct BlockMetaData* block = (struct BlockMetaData*)va - 1;
-	block->is_free = 1;
+	    struct BlockMetaData* block = (struct BlockMetaData*)va - 1;
+	    block->is_free = 1;
 
-	// Coalesce with previous block
-	struct BlockMetaData* current;
-	LIST_FOREACH(current, &memBlockList) {
-		if (current->prev_next_info.le_next == block) {
-			if (current->is_free) {
-				current->size += block->size + sizeOfMetaData();
-				block = current;
-				LIST_REMOVE(&memBlockList, block->prev_next_info.le_next);
-			}
-			break;
-		}
-	}
+	    // Coalesce consecutive free blocks
+	    struct BlockMetaData* current;
+	    LIST_FOREACH(current, &memBlockList) {
+	        if (current->prev_next_info.le_next == block) {
+	            if (current->is_free) {
+	                current->size += block->size + sizeOfMetaData();
+	                LIST_REMOVE(&memBlockList, block);
+	                block = current;
+	            }
+	            break;
+	        }
+	    }
 
-	// Coalesce with next block
-	LIST_FOREACH(current, &memBlockList) {
-		if (current == block->prev_next_info.le_next) {
-			if (current->is_free) {
-				block->size += current->size + sizeOfMetaData();
-				LIST_REMOVE(&memBlockList, current);
-			}
-			break;
-		}
-	}
+	    if (block->prev_next_info.le_next) {
+	        struct BlockMetaData* nextBlock = block->prev_next_info.le_next;
+	        if (nextBlock->is_free) {
+	            block->size += nextBlock->size + sizeOfMetaData();
+	            LIST_REMOVE(&memBlockList, nextBlock);
+	        }
+	    }
 }
 
 //=========================================
