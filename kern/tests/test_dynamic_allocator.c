@@ -72,7 +72,6 @@ int test_initial_alloc(int ALLOC_STRATEGY)
 
 	is_correct = 1;
 	va = alloc_block(3*initAllocatedSpace, ALLOC_STRATEGY);
-
 	//Check returned va
 	if(va != NULL)
 	{
@@ -80,6 +79,8 @@ int test_initial_alloc(int ALLOC_STRATEGY)
 		cprintf("alloc_block_xx #1: WRONG ALLOC - alloc_block_xx didn't call sbrk while it shall do.\n");
 	}
 	va = alloc_block(initAllocatedSpace, ALLOC_STRATEGY);
+//	cprintf("Hello %p \n", va);
+//	print_blocks_list(memBlockList);
 
 	//Check returned va
 	if(va != NULL)
@@ -281,6 +282,7 @@ void test_alloc_block_FF()
 
 	actualSize = 2*kilo - sizeOfMetaData();
 	va = tstStartVAs[numOfFFTests] = alloc_block(actualSize, DA_FF);
+//	print_blocks_list(memBlockList);
 	tstMidVAs[numOfFFTests] = va + actualSize/2 ;
 	tstEndVAs[numOfFFTests] = va + actualSize - sizeof(short);
 	//Check returned va

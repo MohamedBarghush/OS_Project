@@ -114,25 +114,29 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 //=========================================
 void *alloc_block_FF(uint32 size)
 {
-	if (size == 0 || size > DYN_ALLOC_MAX_SIZE - sizeOfMetaData()) {
+    if (size == 0 || size > DYN_ALLOC_MAX_SIZE - sizeOfMetaData()) {
 		return NULL;
 	}
 
-	struct BlockMetaData *myBlock;
+	struct BlockMetaData *myBlock = NULL;
 	struct BlockMetaData *newBlock = NULL;
 
 	LIST_FOREACH(myBlock, &memBlockList) {
-		if (myBlock->is_free && myBlock->size >= size + sizeOfMetaData()) {
+		if (myBlock->is_free && myBlock->size >= size) {
 			if (myBlock->size > size + sizeOfMetaData()) {
 				newBlock = (struct BlockMetaData *)((char *)myBlock + sizeOfMetaData() + size);
 				newBlock->size = myBlock->size - size - sizeOfMetaData();
 				newBlock->is_free = 1;
-				newBlock->prev_next_info.le_next = myBlock->prev_next_info.le_next;
-				newBlock->prev_next_info.le_prev = myBlock;
+				myBlock->is_free = 0;
+				myBlock->size = size;
+			} else if (myBlock->size == size + sizeOfMetaData()) {
+				myBlock->is_free = 0;
+//                myBlock->size = size;
 			}
+			/// null?
+			/// else -> currentBlock->size >= size + sizeOfMetaData
+			///      -->
 
-			myBlock->is_free = 0;
-			myBlock->size = size;
 
 			if (newBlock) {
 				LIST_INSERT_AFTER(&memBlockList, myBlock, newBlock);
@@ -252,9 +256,9 @@ void free_block(void *va)
 	bool shouldRemove = 0;
 
 	for (current = LIST_FIRST(&memBlockList); current != NULL; current = current->prev_next_info.le_next) {
-		if (current->prev_next_info.le_next == block) {
+		if (current->prev_next_info.le_next == block || current->prev_next_info.le_next == NULL) {
 			if (current->is_free) {
-				current->size += block->size+sizeOfMetaData();
+				current->size += block->size;
 				shouldRemove = 1;
 				toRemove = block;
 				block = current;
@@ -270,7 +274,7 @@ void free_block(void *va)
 	if (block->prev_next_info.le_next) {
 		struct BlockMetaData* nextBlock = block->prev_next_info.le_next;
 		if (nextBlock->is_free) {
-			block->size += nextBlock->size + sizeOfMetaData();
+			block->size += nextBlock->size;
 			LIST_REMOVE(&memBlockList, nextBlock);
 		}
 	}
