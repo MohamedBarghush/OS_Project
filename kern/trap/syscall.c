@@ -482,6 +482,7 @@ void* sys_sbrk(int increment)
 {
 	//TODO: [PROJECT'23.MS2 - #08] [2] USER HEAP - Block Allocator - sys_sbrk() [Kernel Side]
 	//MS2: COMMENT THIS LINE BEFORE START CODING====
+//	return (void *)KERNEL_HEAP_MAX;
 	return (void*)-1 ;
 	//====================================================
 

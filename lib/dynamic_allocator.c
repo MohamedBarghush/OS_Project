@@ -69,7 +69,7 @@ void print_blocks_list(struct MemBlock_LIST list)
 	cprintf("\nDynAlloc Blocks List:\n");
 	LIST_FOREACH(blk, &list)
 	{
-		cprintf("(size: %d, isFree: %d)\n", blk->size, blk->is_free) ;
+		cprintf("(size: %d, isFree: %d, current: %p, next: %p)\n", blk->size, blk->is_free, blk, blk->prev_next_info.le_next) ;
 	}
 	cprintf("=========================================\n");
 
@@ -97,13 +97,16 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 
     init__blocK1->size=initSizeOfAllocatedSpace;
     init__blocK1->is_free=1;
-    init__blocK1->prev_next_info.le_prev=NULL;
+    init__blocK1->prev_next_info.le_prev=init__blocK1;
     init__blocK1->prev_next_info.le_next=NULL;
 
 	LIST_INIT(&memBlockList);
 
 	LIST_INSERT_HEAD(&memBlockList, init__blocK1);
+//	print_blocks_list(memBlockList);
+//	cprintf("Fuck you");
 
+//	cprintf("The list is: %p, %p\n", init__blocK1, init__blocK1->prev_next_info.le_next);
 }
 
 //=========================================
@@ -115,29 +118,30 @@ void *alloc_block_FF(uint32 size)
 		return NULL;
 	}
 
-	struct BlockMetaData *myOldBlock;
 	struct BlockMetaData *myBlock;
+	struct BlockMetaData *newBlock = NULL;
 
 	LIST_FOREACH(myBlock, &memBlockList) {
 		if (myBlock->is_free && myBlock->size >= size + sizeOfMetaData()) {
-			if (myBlock->size > size + sizeOfMetaData() + DYN_ALLOC_MAX_BLOCK_SIZE) {
-				struct BlockMetaData *newBlock = (struct BlockMetaData *)((char *)myBlock + sizeOfMetaData() + size);
+			if (myBlock->size > size + sizeOfMetaData()) {
+				newBlock = (struct BlockMetaData *)((char *)myBlock + sizeOfMetaData() + size);
 				newBlock->size = myBlock->size - size - sizeOfMetaData();
 				newBlock->is_free = 1;
 				newBlock->prev_next_info.le_next = myBlock->prev_next_info.le_next;
-
-				myBlock->size = size;
-				myBlock->prev_next_info.le_next = newBlock;
+				newBlock->prev_next_info.le_prev = myBlock;
 			}
 
 			myBlock->is_free = 0;
+			myBlock->size = size;
+
+			if (newBlock) {
+				LIST_INSERT_AFTER(&memBlockList, myBlock, newBlock);
+			}
+
 			return (void *)(myBlock + 1);
 		}
-
-		myOldBlock = myBlock;
 	}
 
-	// If no sufficiently large free block is found
 	if (sbrk(size + sizeOfMetaData()) == (void *)-1) {
 		return NULL;
 	}
@@ -147,9 +151,9 @@ void *alloc_block_FF(uint32 size)
 	myBlock->is_free = 0;
 	myBlock->prev_next_info.le_next = NULL;
 
-	LIST_INSERT_AFTER(&memBlockList, myOldBlock, myBlock);
-//	cprintf("My thing is: %p and %p \n", myOldBlock, myBlock);
-	return (void *)(myBlock + sizeOfMetaData());
+	LIST_INSERT_AFTER(&memBlockList, LIST_LAST(&memBlockList), myBlock);
+
+	return (void *)(myBlock + 1);
 }
 //=========================================
 // [5] ALLOCATE BLOCK BY BEST FIT:
@@ -157,8 +161,57 @@ void *alloc_block_FF(uint32 size)
 void *alloc_block_BF(uint32 size)
 {
 	//TODO: [PROJECT'23.MS1 - BONUS] [3] DYNAMIC ALLOCATOR - alloc_block_BF()
-	panic("alloc_block_BF is not implemented yet");
-	return NULL;
+//	panic("alloc_block_BF is not implemented yet");
+//	return NULL;
+
+	if (size == 0 || size > (DYN_ALLOC_MAX_SIZE - sizeOfMetaData())) {
+		return NULL;
+	}
+
+	struct BlockMetaData* new_blocK;
+
+	// Initialize fit_block to NULL
+	struct BlockMetaData* fit_block = NULL;
+
+	struct BlockMetaData* list_iterator;
+	LIST_FOREACH(list_iterator, &memBlockList) {
+		if (list_iterator->is_free == 1) {
+			if (list_iterator->size < size) {
+				continue;
+			} else if (list_iterator->size == size) {
+				fit_block = list_iterator;
+				break;
+			} else {
+				if (( list_iterator->size)-size < (fit_block->size)-size) {
+					fit_block = list_iterator;
+					list_iterator=(list_iterator)->prev_next_info.le_next;
+				}
+			}
+		}
+	}
+
+	if (sbrk(size + sizeOfMetaData()) == (void *)-1) {
+		return NULL;
+	}
+
+	new_blocK = (struct BlockMetaData *)sbrk(0);
+	new_blocK->size = size;
+	new_blocK->is_free = 0;
+	new_blocK->prev_next_info.le_next = NULL;
+
+//	if (fit_block == NULL) {
+//		return NULL;
+//	}
+//
+//	new_blocK = fit_block;
+//	new_blocK->size = size;
+//	new_blocK->is_free = 0;
+
+	// Double-check this part: Ensure the list is properly maintained.
+	// Verify the insertion logic.
+	LIST_INSERT_BEFORE(&memBlockList, list_iterator, new_blocK);
+
+	return (void *)(new_blocK - 1);
 }
 
 //=========================================
@@ -187,32 +240,40 @@ void free_block(void *va)
 	//TODO: [PROJECT'23.MS1 - #7] [3] DYNAMIC ALLOCATOR - free_block()
 //	panic("free_block is not implemented yet");
 	if (va == NULL) {
-	        return;
-	    }
+		return;
+	}
 
-	    struct BlockMetaData* block = (struct BlockMetaData*)va - 1;
-	    block->is_free = 1;
+	struct BlockMetaData* block = (struct BlockMetaData*)va - 1;
+	block->is_free = 1;
 
-	    // Coalesce consecutive free blocks
-	    struct BlockMetaData* current;
-	    LIST_FOREACH(current, &memBlockList) {
-	        if (current->prev_next_info.le_next == block) {
-	            if (current->is_free) {
-	                current->size += block->size + sizeOfMetaData();
-	                LIST_REMOVE(&memBlockList, block);
-	                block = current;
-	            }
-	            break;
-	        }
-	    }
+	// Coalesce consecutive free blocks
+	struct BlockMetaData* current;
+	struct BlockMetaData* toRemove = NULL;
+	bool shouldRemove = 0;
 
-	    if (block->prev_next_info.le_next) {
-	        struct BlockMetaData* nextBlock = block->prev_next_info.le_next;
-	        if (nextBlock->is_free) {
-	            block->size += nextBlock->size + sizeOfMetaData();
-	            LIST_REMOVE(&memBlockList, nextBlock);
-	        }
-	    }
+	for (current = LIST_FIRST(&memBlockList); current != NULL; current = current->prev_next_info.le_next) {
+		if (current->prev_next_info.le_next == block) {
+			if (current->is_free) {
+				current->size += block->size+sizeOfMetaData();
+				shouldRemove = 1;
+				toRemove = block;
+				block = current;
+			}
+			break;
+		}
+	}
+
+	if (shouldRemove) {
+		LIST_REMOVE(&memBlockList, toRemove);
+	}
+
+	if (block->prev_next_info.le_next) {
+		struct BlockMetaData* nextBlock = block->prev_next_info.le_next;
+		if (nextBlock->is_free) {
+			block->size += nextBlock->size + sizeOfMetaData();
+			LIST_REMOVE(&memBlockList, nextBlock);
+		}
+	}
 }
 
 //=========================================

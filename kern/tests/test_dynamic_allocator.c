@@ -103,7 +103,7 @@ int test_initial_alloc(int ALLOC_STRATEGY)
 		totalSizes += allocSizes[i] * allocCntPerSize ;
 	}
 	int remainSize = initAllocatedSpace - totalSizes ;
-	//cprintf("\n********* Remaining size = %d\n", remainSize);
+//	cprintf("\n********* Remaining size = %d\n", remainSize); // Mohamed revealed this
 	if (remainSize <= 0)
 	{
 		is_correct = 0;
@@ -200,7 +200,10 @@ void test_alloc_block_FF()
 	cprintf("=======================================================\n") ;
 	cprintf("FIRST: Tests depend on the Allocate Function ONLY [40%]\n") ;
 	cprintf("=======================================================\n") ;
+//	print_blocks_list(memBlockList);
 	eval = test_initial_alloc(DA_FF);
+//	print_blocks_list(memBlockList);
+//	cprintf("Hello from here"); // Mohamed added this
 
 	cprintf("====================================================\n") ;
 	cprintf("SECOND: Tests depend on BOTH Allocate and Free [60%] \n") ;
@@ -209,9 +212,11 @@ void test_alloc_block_FF()
 	//Free set of blocks with different sizes (first block of each size)
 	for (int i = 0; i < numOfAllocs; ++i)
 	{
+//		cprintf("\ntrying to free block\n"); // Mohamed added this
 		free_block(startVAs[i*allocCntPerSize]);
+//		cprintf("\nfinished freeing block\n"); // Mohamed added this
 	}
-
+//	cprintf("\nDone freeing\n"); // Mohamed added this
 	//====================================================================//
 	/*FF ALLOC Scenario 1: Try to allocate a block with a size greater than the size of any existing free block*/
 	cprintf("	1: Try to allocate large block [not fit in any space]\n\n") ;
