@@ -114,7 +114,7 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 //=========================================
 void *alloc_block_FF(uint32 size)
 {
-    if (size == 0 || size > DYN_ALLOC_MAX_SIZE - sizeOfMetaData()) {
+    if (size == 0) {
 		return NULL;
 	}
 
@@ -158,6 +158,36 @@ void *alloc_block_FF(uint32 size)
 	LIST_INSERT_AFTER(&memBlockList, LIST_LAST(&memBlockList), myBlock);
 
 	return (void *)(myBlock + 1);
+
+//	if (size == 0) {
+//		return NULL;
+//	}
+//
+//	struct BlockMetaData *myBlock;
+//	struct BlockMetaData *newBlock = NULL;
+//	struct BlockMetaData *oldBlock = NULL;
+//
+//	LIST_FOREACH(myBlock, &memBlockList) {
+//		if (myBlock->is_free) {
+//			if (myBlock->size >= size) {
+//				if(myBlock->size > size + sizeOfMetaData()) {
+//					newBlock = (struct BlockMetaData*)((char*)myBlock + sizeOfMetaData() + size);
+//					oldBlock = myBlock;
+//					newBlock->size = myBlock->size - size - sizeOfMetaData();
+//					newBlock->is_free = 1;
+//					myBlock->is_free = 0;
+//					myBlock->size = size;
+//				}
+//			}
+//		}
+//	}
+//
+//	if (newBlock != NULL && oldBlock != NULL) {
+//		LIST_INSERT_AFTER(&memBlockList, oldBlock, newBlock);
+//		return (void*)(oldBlock+1);
+//	}
+//	sbrk(0);
+//	return NULL;
 }
 //=========================================
 // [5] ALLOCATE BLOCK BY BEST FIT:
@@ -258,10 +288,10 @@ void free_block(void *va)
 	for (current = LIST_FIRST(&memBlockList); current != NULL; current = current->prev_next_info.le_next) {
 		if (current->prev_next_info.le_next == block || current->prev_next_info.le_next == NULL) {
 			if (current->is_free) {
-				current->size += block->size;
+				current->size += block->size+sizeOfMetaData();
 				shouldRemove = 1;
 				toRemove = block;
-				block = current;
+//				block = current;
 			}
 			break;
 		}
