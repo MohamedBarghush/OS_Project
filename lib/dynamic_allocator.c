@@ -122,27 +122,31 @@ void *alloc_block_FF(uint32 size)
 	struct BlockMetaData *newBlock = NULL;
 
 	LIST_FOREACH(myBlock, &memBlockList) {
-		if (myBlock->is_free && myBlock->size >= size) {
+		if (myBlock->is_free) {
 			if (myBlock->size > size + sizeOfMetaData()) {
 				newBlock = (struct BlockMetaData *)((char *)myBlock + sizeOfMetaData() + size);
 				newBlock->size = myBlock->size - size - sizeOfMetaData();
 				newBlock->is_free = 1;
 				myBlock->is_free = 0;
 				myBlock->size = size;
+				if (newBlock) {
+					LIST_INSERT_AFTER(&memBlockList, myBlock, newBlock);
+				}
+
+				return (void *)(myBlock + 1);
 			} else if (myBlock->size == size + sizeOfMetaData()) {
 				myBlock->is_free = 0;
-//                myBlock->size = size;
+				return (void *)(myBlock + 1);
+			} else {
+				if (myBlock->prev_next_info.le_next == NULL) {
+					sbrk(0);
+					return NULL;
+				}
+				if (myBlock->size >= size) {
+					myBlock->is_free=0;
+					return (void *)(myBlock+1);
+				}
 			}
-			/// null?
-			/// else -> currentBlock->size >= size + sizeOfMetaData
-			///      -->
-
-
-			if (newBlock) {
-				LIST_INSERT_AFTER(&memBlockList, myBlock, newBlock);
-			}
-
-			return (void *)(myBlock + 1);
 		}
 	}
 
@@ -150,44 +154,14 @@ void *alloc_block_FF(uint32 size)
 		return NULL;
 	}
 
-	myBlock = (struct BlockMetaData *)sbrk(0);
-	myBlock->size = size;
-	myBlock->is_free = 0;
-	myBlock->prev_next_info.le_next = NULL;
-
-	LIST_INSERT_AFTER(&memBlockList, LIST_LAST(&memBlockList), myBlock);
+//	myBlock = (struct BlockMetaData *)sbrk(0);
+//	myBlock->size = size;
+//	myBlock->is_free = 0;
+//	myBlock->prev_next_info.le_next = NULL;
+//
+//	LIST_INSERT_AFTER(&memBlockList, LIST_LAST(&memBlockList), myBlock);
 
 	return (void *)(myBlock + 1);
-
-//	if (size == 0) {
-//		return NULL;
-//	}
-//
-//	struct BlockMetaData *myBlock;
-//	struct BlockMetaData *newBlock = NULL;
-//	struct BlockMetaData *oldBlock = NULL;
-//
-//	LIST_FOREACH(myBlock, &memBlockList) {
-//		if (myBlock->is_free) {
-//			if (myBlock->size >= size) {
-//				if(myBlock->size > size + sizeOfMetaData()) {
-//					newBlock = (struct BlockMetaData*)((char*)myBlock + sizeOfMetaData() + size);
-//					oldBlock = myBlock;
-//					newBlock->size = myBlock->size - size - sizeOfMetaData();
-//					newBlock->is_free = 1;
-//					myBlock->is_free = 0;
-//					myBlock->size = size;
-//				}
-//			}
-//		}
-//	}
-//
-//	if (newBlock != NULL && oldBlock != NULL) {
-//		LIST_INSERT_AFTER(&memBlockList, oldBlock, newBlock);
-//		return (void*)(oldBlock+1);
-//	}
-//	sbrk(0);
-//	return NULL;
 }
 //=========================================
 // [5] ALLOCATE BLOCK BY BEST FIT:
@@ -283,23 +257,34 @@ void free_block(void *va)
 	// Coalesce consecutive free blocks
 	struct BlockMetaData* current;
 	struct BlockMetaData* toRemove = NULL;
-	bool shouldRemove = 0;
+//	bool shouldRemove = 0;
 
 	for (current = LIST_FIRST(&memBlockList); current != NULL; current = current->prev_next_info.le_next) {
-		if (current->prev_next_info.le_next == block || current->prev_next_info.le_next == NULL) {
+		if (current->prev_next_info.le_next == block) {
 			if (current->is_free) {
 				current->size += block->size+sizeOfMetaData();
-				shouldRemove = 1;
-				toRemove = block;
+				LIST_REMOVE(&memBlockList, block);
+//				shouldRemove = 1;
+//				toRemove = block;
 //				block = current;
+//				break;
 			}
-			break;
+		}
+		if (current->prev_next_info.le_prev == block) {
+			if (current->is_free) {
+				block->size += current->size+sizeOfMetaData();
+				LIST_REMOVE(&memBlockList, current);
+//				shouldRemove = 1;
+//				toRemove = current;
+//				block = current;
+//				break;
+			}
 		}
 	}
 
-	if (shouldRemove) {
-		LIST_REMOVE(&memBlockList, toRemove);
-	}
+//	if (shouldRemove) {
+//
+//	}
 
 	if (block->prev_next_info.le_next) {
 		struct BlockMetaData* nextBlock = block->prev_next_info.le_next;
