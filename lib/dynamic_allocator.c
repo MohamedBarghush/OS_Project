@@ -276,6 +276,8 @@ void free_block(void *va)
 			}
 			else if (current->prev_next_info.le_prev == block) {
 				block->size = previousSize + current->size;
+				current->size = 0;
+				current->is_free = 0;
 				LIST_REMOVE(&memBlockList, current);
 			} else {
 				current = current->prev_next_info.le_next;
