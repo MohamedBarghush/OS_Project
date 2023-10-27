@@ -258,62 +258,26 @@ void free_block(void *va)
 	if (block == NULL) {
 		return;
 	}
-	int previousSize = block->size;
+//	int previousSize = block->size;
 	block->is_free = 1;
 
 	// Coalesce consecutive free blocks
-	struct BlockMetaData* current;
-//	struct BlockMetaData* toRemove = NULL;
-	current = LIST_FIRST(&memBlockList);
+	struct BlockMetaData* current = LIST_FIRST(&memBlockList);
 	while (current != NULL) {
-		bool free = 0;
-		if (current->is_free == 1) {
-			if (current->prev_next_info.le_next == block) {
-				current->size += previousSize;
-				block->size = 0;
-				block->is_free = 0;
-				LIST_REMOVE(&memBlockList, block);
-			}
-			else if (current->prev_next_info.le_prev == block) {
-				block->size = previousSize + current->size;
-				current->size = 0;
-				current->is_free = 0;
-				LIST_REMOVE(&memBlockList, current);
-			} else {
-				current = current->prev_next_info.le_next;
-			}
-		} else {
-			current = current->prev_next_info.le_next;
-		}
+	    if (current->is_free == 1) {
+	        struct BlockMetaData* nextBlock = current->prev_next_info.le_next;
+	        while (nextBlock && nextBlock->is_free == 1) {
+	            current->size += nextBlock->size;
+	            nextBlock->size = 0;
+	            nextBlock->is_free = 0;
+	            // Adjust the next pointer before removing the current block
+	            struct BlockMetaData* temp = nextBlock;
+	            nextBlock = nextBlock->prev_next_info.le_next;
+	            LIST_REMOVE(&memBlockList, temp);
+	        }
+	    }
+	    current = current->prev_next_info.le_next;
 	}
-//	cprintf("This is me: %d %p %d \n", block->size, block, block->is_free);
-//	while (current != NULL) {
-//		if (current->prev_next_info.le_next == block) {
-//			if (current->is_free) {
-//				current->size += block->size;
-//				LIST_REMOVE(&memBlockList, block);
-//			}
-//		}
-//		if (current->prev_next_info.le_prev == block) {
-//			if (current->is_free) {
-//				block->size += current->size;
-//				LIST_REMOVE(&memBlockList, current);
-//			}
-//		}
-//		current = current->prev_next_info.le_next;
-//	}
-
-//	if (shouldRemove) {
-//
-//	}
-
-//	if (block->prev_next_info.le_next) {
-//		struct BlockMetaData* nextBlock = block->prev_next_info.le_next;
-//		if (nextBlock->is_free) {
-//			block->size += nextBlock->size;
-//			LIST_REMOVE(&memBlockList, nextBlock);
-//		}
-//	}
 }
 
 //=========================================
