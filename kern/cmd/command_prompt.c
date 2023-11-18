@@ -379,55 +379,104 @@ int execute_command(char *command_string)
 int process_command(int number_of_arguments, char** arguments)
 {
 	//TODO: [PROJECT'23.MS1 - #2] [1] PLAY WITH CODE! - process_command
-	//Comment the following line before start coding...
+	    //Comment the following line before start coding...
 
-	int found = 0;
+	    int __is___found = 0;
 
-	char *matched_commands_with_most_size[NUM_OF_COMMANDS];
-	int arr_size = 0;
+	    char   *matched_commands_with_most_size[NUM_OF_COMMANDS];
 
-	// 7wl le lower
-	str2lower(arguments[0], arguments[0]);
 
-	for (int i = 0; i < NUM_OF_COMMANDS; i++) {
-		if (strcmp(arguments[0], commands[i].name) == 0) {
-			if (number_of_arguments - 1 == commands[i].num_of_args) {
-				return i;
-			} else {
-				if (commands[i].num_of_args == -1 && number_of_arguments >= 1) {
-					return i;
-				}
-				return CMD_INV_NUM_ARGS;
-			}
-		}
-	}
+	    int   arr_size = 0;
 
-	found = 0;
-	LIST_INIT(&foundCommands); // ebdaa el list men el awl
+	    // uppercase to lower
+//	    str2lower(arguments[0], arguments[0]);
 
-	for (int i = 0; i < NUM_OF_COMMANDS; i++) {
-		int name_length = strlen(commands[i].name);
-		int arg_length = strlen(arguments[0]);
-		int command_name_loop_index = 0, argument_loop_index = 0; // e3ml variable 3alashan nloop beha
 
-		while (command_name_loop_index < name_length && argument_loop_index < arg_length) {
-			if (commands[i].name[command_name_loop_index] == arguments[0][argument_loop_index]) {
-				argument_loop_index++;
-			}
-			command_name_loop_index++;
-		}
+	    for  (int  i  =  0 ;  i  <  NUM_OF_COMMANDS ;  i++ ) {
 
-		if (argument_loop_index == arg_length) {
-			LIST_INSERT_TAIL(&foundCommands, &commands[i]);
-			found = 1;
-		}
-	}
+	    	//compare to arg with commands
 
-	if (found) {
-		return CMD_MATCHED;
-	} else {
-		return CMD_INVALID;
-	}
+	        if  (  strcmp(  arguments [0] ,  commands[ i ]. name)  ==  0) {
+
+	        	//  found command
+
+	            if   ( number_of_arguments  -  1  ==    commands[i].num_of_args) {
+
+
+	                return i;
+
+	            }
+	            //  invalid number of arguments
+	            else   {
+
+
+	                if (commands[i].num_of_args == -1 && number_of_arguments >= 1) {
+	                    return i;
+	                }
+
+	                return CMD_INV_NUM_ARGS;
+
+	            }
+
+	        }
+
+	    }
+
+	    __is___found = 0;
+	    LIST_INIT(&foundCommands); // ebdaa el list men el awl
+
+	    // iterate 3la all commands
+	    for (int i = 0; i < NUM_OF_COMMANDS; i++) {
+	    	//beshof lenght el command
+
+	        int NNAME__Lenght = strlen(commands[i].name);
+
+	        ///
+	        int Arg__LengtH = strlen(arguments[0]);
+
+	        ////
+	        int command_name_loop_index = 0, ARGument__loop__index = 0; // e3ml variable 3alashan nloop beha
+
+	        while (command_name_loop_index < NNAME__Lenght && ARGument__loop__index < Arg__LengtH) {
+
+	            if (commands[i].name[command_name_loop_index] == arguments[0][ARGument__loop__index]) {
+
+	                ARGument__loop__index++;
+
+
+	            }
+
+	            command_name_loop_index++;
+
+	        }
+
+
+	        if (ARGument__loop__index == Arg__LengtH) {
+
+	            LIST_INSERT_TAIL(&foundCommands, &commands[i]);
+
+	            __is___found = 1;
+	        }
+	    }
+
+	    //matched command
+
+	    if (__is___found) {
+
+
+
+	        return CMD_MATCHED;
+
+
+	    }
+
+	    // invalid command
+	    else {
+
+	        return CMD_INVALID;
+
+
+	    }
 }
 
 

@@ -62,7 +62,6 @@ int test_initial_alloc(int ALLOC_STRATEGY)
 	int eval = 0;
 	bool is_correct = 1;
 	int initAllocatedSpace = 3*Mega;
-//	cprintf("\n MEGA SIZE: %d \n", initAllocatedSpace); // Mohamed made this
 	initialize_dynamic_allocator(KERNEL_HEAP_START, initAllocatedSpace);
 
 	void * va ;
@@ -72,6 +71,7 @@ int test_initial_alloc(int ALLOC_STRATEGY)
 
 	is_correct = 1;
 	va = alloc_block(3*initAllocatedSpace, ALLOC_STRATEGY);
+
 	//Check returned va
 	if(va != NULL)
 	{
@@ -79,8 +79,6 @@ int test_initial_alloc(int ALLOC_STRATEGY)
 		cprintf("alloc_block_xx #1: WRONG ALLOC - alloc_block_xx didn't call sbrk while it shall do.\n");
 	}
 	va = alloc_block(initAllocatedSpace, ALLOC_STRATEGY);
-//	cprintf("Hello %p \n", va);
-//	print_blocks_list(memBlockList);
 
 	//Check returned va
 	if(va != NULL)
@@ -104,7 +102,7 @@ int test_initial_alloc(int ALLOC_STRATEGY)
 		totalSizes += allocSizes[i] * allocCntPerSize ;
 	}
 	int remainSize = initAllocatedSpace - totalSizes ;
-//	cprintf("\n********* Remaining size = %d\n", remainSize); // Mohamed revealed this
+	//cprintf("\n********* Remaining size = %d\n", remainSize);
 	if (remainSize <= 0)
 	{
 		is_correct = 0;
@@ -201,10 +199,7 @@ void test_alloc_block_FF()
 	cprintf("=======================================================\n") ;
 	cprintf("FIRST: Tests depend on the Allocate Function ONLY [40%]\n") ;
 	cprintf("=======================================================\n") ;
-//	print_blocks_list(memBlockList);
 	eval = test_initial_alloc(DA_FF);
-//	print_blocks_list(memBlockList);
-//	cprintf("Hello from here"); // Mohamed added this
 
 	cprintf("====================================================\n") ;
 	cprintf("SECOND: Tests depend on BOTH Allocate and Free [60%] \n") ;
@@ -213,11 +208,9 @@ void test_alloc_block_FF()
 	//Free set of blocks with different sizes (first block of each size)
 	for (int i = 0; i < numOfAllocs; ++i)
 	{
-//		cprintf("\ntrying to free block\n"); // Mohamed added this
 		free_block(startVAs[i*allocCntPerSize]);
-//		cprintf("\nfinished freeing block\n"); // Mohamed added this
 	}
-//	cprintf("\nDone freeing\n"); // Mohamed added this
+
 	//====================================================================//
 	/*FF ALLOC Scenario 1: Try to allocate a block with a size greater than the size of any existing free block*/
 	cprintf("	1: Try to allocate large block [not fit in any space]\n\n") ;
@@ -282,7 +275,6 @@ void test_alloc_block_FF()
 
 	actualSize = 2*kilo - sizeOfMetaData();
 	va = tstStartVAs[numOfFFTests] = alloc_block(actualSize, DA_FF);
-//	print_blocks_list(memBlockList);
 	tstMidVAs[numOfFFTests] = va + actualSize/2 ;
 	tstEndVAs[numOfFFTests] = va + actualSize - sizeof(short);
 	//Check returned va

@@ -82,31 +82,39 @@ void print_blocks_list(struct MemBlock_LIST list)
 //============================ REQUIRED FUNCTIONS ==================================//
 //==================================================================================//
 
+bool is_initialized = 0;
 //==================================
 // [1] INITIALIZE DYNAMIC ALLOCATOR:
 //==================================
 void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpace)
 {
-    struct BlockMetaData* init__blocK1= (struct BlockMetaData*)(daStart);
-    //=========================================
-    //DON'T CHANGE THESE LINES=================
-    if (initSizeOfAllocatedSpace == 0)
-        return ;
-    //=========================================
-    //=========================================
+	//initializing first metadata block
+	    struct BlockMetaData* init__blocK1= (struct BlockMetaData*)(daStart);
+	    //=========================================
+	    //DON'T CHANGE THESE LINES=================
+	    if (initSizeOfAllocatedSpace == 0)
+	        return ;
+	    is_initialized = 1;
+	    //=========================================
+	    //=========================================
 
-    init__blocK1->size=initSizeOfAllocatedSpace;
-    init__blocK1->is_free=1;
-    init__blocK1->prev_next_info.le_prev=init__blocK1;
-    init__blocK1->prev_next_info.le_next=NULL;
+	    //setting size of next block = zero
+	    init__blocK1->size=initSizeOfAllocatedSpace;
 
-	LIST_INIT(&memBlockList);
+	    //setting metadata block status as free
+	    init__blocK1->is_free=1;
 
-	LIST_INSERT_HEAD(&memBlockList, init__blocK1);
-//	print_blocks_list(memBlockList);
-//	cprintf("Fuck you");
+	    //setting previous pointer to this block
+	    init__blocK1->prev_next_info.le_prev=init__blocK1;
 
-//	cprintf("The list is: %p, %p\n", init__blocK1, init__blocK1->prev_next_info.le_next);
+	    //setting pointer to null
+	    init__blocK1->prev_next_info.le_next=NULL;
+
+		LIST_INIT(&memBlockList);
+
+		LIST_INSERT_HEAD(&memBlockList, init__blocK1);
+
+
 }
 
 //=========================================
@@ -114,57 +122,91 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 //=========================================
 void *alloc_block_FF(uint32 size)
 {
-    if (size == 0) {
-		return NULL;
-	}
+	//empty size case
+	    if (size == 0)
+	    {
+			return NULL;
+		}
 
-//    cprintf("Trying to allocate size of: %d %p with size of %d \n", size, LIST_FIRST(&memBlockList), LIST_FIRST(&memBlockList)->size);
+		struct BlockMetaData *myBlock = NULL;
+		struct BlockMetaData *newBlock = NULL;
 
-	struct BlockMetaData *myBlock = NULL;
-	struct BlockMetaData *newBlock = NULL;
+		LIST_FOREACH(myBlock, &memBlockList) {
 
-	LIST_FOREACH(myBlock, &memBlockList) {
-		if (myBlock->is_free) {
-			int actualSize = myBlock->size - sizeOfMetaData();
-			if (actualSize > size + sizeOfMetaData()) {
-				newBlock = (struct BlockMetaData *)((char *)myBlock + sizeOfMetaData() + size);
-				newBlock->size = myBlock->size - size - sizeOfMetaData();
-				newBlock->is_free = 1;
-				myBlock->is_free = 0;
-				myBlock->size = size+sizeOfMetaData();
-				if (newBlock) {
-					LIST_INSERT_AFTER(&memBlockList, myBlock, newBlock);
+
+			if (myBlock->is_free) {
+
+				//saving the actual size of block in this variable
+				int actualSize = myBlock->size - sizeOfMetaData();
+
+				//case 1: if block can fit into free space easily
+				if (actualSize > size + sizeOfMetaData()) {
+
+					//initializing the new metadata block
+					newBlock = (struct BlockMetaData *)((char *)myBlock + sizeOfMetaData() + size);
+					//setting its size
+					newBlock->size = myBlock->size - size - sizeOfMetaData();
+					//setting free status
+					newBlock->is_free = 1;
+
+					//setting block status as not free
+					myBlock->is_free = 0;
+					//setting its size
+					myBlock->size = size+sizeOfMetaData();
+					if (newBlock) {
+
+						LIST_INSERT_AFTER(&memBlockList, myBlock, newBlock);
+
+					}
+
+
+
+					return (void *)(myBlock + 1);
+
+
 				}
+				// case 2: if block exactly fits in free space
+				else if (actualSize == size + sizeOfMetaData()) {
 
-				return (void *)(myBlock + 1);
-			} else if (actualSize == size + sizeOfMetaData()) {
-				myBlock->is_free = 0;
-				return (void *)(myBlock + 1);
-			} else {
-				if (actualSize >= size) {
-					myBlock->is_free=0;
-					return (void *)(myBlock+1);
+					//setting block status as not free
+					myBlock->is_free = 0;
+
+					return (void *)(myBlock + 1);
+
 				}
-				if (myBlock->prev_next_info.le_next == NULL) {
-					sbrk(0);
-					return NULL;
+				//case 3: if block doesn't fit in free space
+				else {
+
+					//case 3.1:if data block fits
+					if (actualSize >= size) {
+
+
+						myBlock->is_free=0;
+						return (void *)(myBlock+1);
+
+
+					}//if its the last block
+					if (myBlock->prev_next_info.le_next == NULL) {
+
+						//calling system break
+						sbrk(0);
+						return NULL;
+
+
+					}
 				}
 			}
 		}
-	}
 
-	if (sbrk(size + sizeOfMetaData()) == (void *)-1) {
-		return NULL;
-	}
+		//law sbrk msh tmm w msh httrf3 tdeny msa7a hrga3 NULL
+		if (sbrk(size + sizeOfMetaData()) == (void *)-1) {
+			return NULL;
 
-//	myBlock = (struct BlockMetaData *)sbrk(0);
-//	myBlock->size = size;
-//	myBlock->is_free = 0;
-//	myBlock->prev_next_info.le_next = NULL;
-//
-//	LIST_INSERT_AFTER(&memBlockList, LIST_LAST(&memBlockList), myBlock);
 
-	return (void *)(myBlock + 1);
+		}
+
+
+		return (void *)(myBlock + 1);
 }
 //=========================================
 // [5] ALLOCATE BLOCK BY BEST FIT:
@@ -175,9 +217,28 @@ void *alloc_block_BF(uint32 size)
 //    panic("alloc_block_BF is not implemented yet");
 //    return NULL;
 
+//okay BF is another way to allocate memory but in this strategy we scan all memory and choose the
+//smallest block which can fit the required size
+
+
+//its like FF by 95% m3ada bas in block to allocate
+
+
+
+
 	if (size == 0) {
 	    return NULL;
 	}
+
+	if (!is_initialized)
+	{
+		uint32 required_size = size + sizeOfMetaData();
+		uint32 da_start = (uint32)sbrk(required_size);
+		//get new break since it's page aligned! thus, the size can be more than the required one
+		uint32 da_break = (uint32)sbrk(0);
+		initialize_dynamic_allocator(da_start, da_break - da_start);
+	}
+
 
 	struct BlockMetaData *myBlock = NULL;
 	struct BlockMetaData *newBlock = NULL;
@@ -185,14 +246,25 @@ void *alloc_block_BF(uint32 size)
 	struct BlockMetaData* smallestSize = NULL;
 
 	LIST_FOREACH(myBlock, &memBlockList) {
+
 	    if (myBlock->is_free) {
+
+
 	        int actualSize = myBlock->size - sizeOfMetaData();
 	        if (actualSize >= size) {
+
+
 	            if (smallestSize != NULL) {
+
+
 					if (actualSize < smallestSize->size-sizeOfMetaData()) {
+
 						smallestSize = myBlock;
 					}
-	            } else {
+
+	            }
+	            else {
+
 	            	smallestSize = myBlock;
 	            }
 	        }
@@ -200,30 +272,56 @@ void *alloc_block_BF(uint32 size)
 	}
 
 
+
+
 	if (smallestSize == NULL) {
+
+
 		sbrk(0);
 		return NULL;
+
+
 	} else {
+
+
 		if ((smallestSize->size-sizeOfMetaData()) > size + sizeOfMetaData()) {
 			newBlock = (struct BlockMetaData *)((char *)smallestSize + sizeOfMetaData() + size);
+
+
 			newBlock->size = smallestSize->size - size - sizeOfMetaData();
+
+
 			newBlock->is_free = 1;
+
 			smallestSize->is_free = 0;
+
 			smallestSize->size = size + sizeOfMetaData();
+
 			LIST_INSERT_AFTER(&memBlockList, smallestSize, newBlock);
+
 			return (void *)(smallestSize + 1);
+
+
 		} else if ((smallestSize->size - sizeOfMetaData()) == size + sizeOfMetaData()) {
+
 			smallestSize->is_free = 0;
 			return (void*)(smallestSize+1);
-		} else {
-			if ((smallestSize->size-sizeOfMetaData()) >= size) {
-				smallestSize->is_free = 0;
-				return (void*)(smallestSize+1);
+
 			} else {
-				sbrk(0);
-				return NULL;
+
+						if ((smallestSize->size-sizeOfMetaData()) >= size) {
+
+
+							smallestSize->is_free = 0;
+							return (void*)(smallestSize+1);
+
+						} else {
+
+
+							sbrk(0);
+							return NULL;
+						}
 			}
-		}
 	}
 
 	if (sbrk(size + sizeOfMetaData()) == (void *)-1) {
@@ -264,7 +362,9 @@ void free_block(void *va)
 
 	struct BlockMetaData* block = (struct BlockMetaData*)va - 1;
 	if (block == NULL) {
+
 		return;
+
 	}
 //	int previousSize = block->size;
 	block->is_free = 1;
@@ -272,16 +372,27 @@ void free_block(void *va)
 	// Coalesce consecutive free blocks
 	struct BlockMetaData* current = LIST_FIRST(&memBlockList);
 	while (current != NULL) {
+
 	    if (current->is_free == 1) {
+
+
 	        struct BlockMetaData* nextBlock = current->prev_next_info.le_next;
-	        while (nextBlock && nextBlock->is_free == 1) {
-	            current->size += nextBlock->size;
-	            nextBlock->size = 0;
-	            nextBlock->is_free = 0;
-	            // Adjust the next pointer before removing the current block
-	            struct BlockMetaData* temp = nextBlock;
-	            nextBlock = nextBlock->prev_next_info.le_next;
-	            LIST_REMOVE(&memBlockList, temp);
+	        while (nextBlock && nextBlock->is_free == 1)
+	           {
+
+						current->size += nextBlock->size;
+
+						nextBlock->size = 0;
+
+						nextBlock->is_free = 0;
+						// Adjust the next pointer before removing the current block
+						struct BlockMetaData* temp = nextBlock;
+
+						nextBlock = nextBlock->prev_next_info.le_next;
+
+						LIST_REMOVE(&memBlockList, temp);
+
+
 	        }
 	    }
 	    current = current->prev_next_info.le_next;
@@ -291,72 +402,110 @@ void free_block(void *va)
 //=========================================
 // [4] REALLOCATE BLOCK BY FIRST FIT:
 //=========================================
-	//TODO: [PROJECT'23.MS1 - #8] [3] DYNAMIC ALLOCATOR - realloc_block_FF()
-//	panic("realloc_block_FF is not implemented yet");
 void *realloc_block_FF(void* va, uint32 new_size)
 {
 	//TODO: [PROJECT'23.MS1 - #8] [3] DYNAMIC ALLOCATOR - realloc_block_FF()
 	//panic("realloc_block_FF is not implemented yet");
-	// If va is NULL and new_size is 0, return NULL
+
+
 	// If va is NULL and new_size is 0, return NULL
 	if (va == NULL && new_size == 0) {
+
 		return NULL;
+
 	}
 
 	// If va is NULL and new_size is not 0, allocate a new block
 	if (va == NULL) {
+
 		return alloc_block_FF(new_size);
+
 	}
 
 	// Get the current block size and metadata
 	uint32 current_block_size = get_block_size(va);
-//	current_block_size += sizeOfMetaData();
-//	cprintf("old size: %d, new size: %d\n", current_block_size, new_size);
+
+   // bmsk el meta data ll block nfso mn el VA bta3o
 	struct BlockMetaData *current = (struct BlockMetaData*)va - 1;
 
-	// If new_size is 0, free the current block and return NULL
+	// law ba3tly el size b zero keda 3ayzny a3ml free ll block da w return NULL
 	if (new_size == 0) {
+
 		free_block(va);
 		return NULL;
+
 	}
 
-	// If the current block size is already greater or equal to new_size, return va
-	if (current_block_size >= new_size) {
+	// law el size kber l el block bta3y ana h3ml split ll block da w law el size kber 3n elmeta data
+	//h3ml new block w a7ot feh meta data , return va
+
+
+	if (current_block_size > new_size) {
+
 		// Adjust the size of the existing block and possibly coalesce with the next free block
+
 		current->size = new_size+sizeOfMetaData();
 
-		// Check if there's enough space for a new free block after resizing
+		//7tt elmeta data ahy law kant el space tkafeha w azyad haga tmm 8er keda
+		//htt7sb internal fragmentation 3la el block bta3y
+
+
 		int available = current_block_size - new_size;
 		if (available >= sizeOfMetaData()) {
-			struct BlockMetaData *new_meta_data = (struct BlockMetaData*)((char*)current + new_size);
+
+
+			struct BlockMetaData *new_meta_data = (struct BlockMetaData*)((char*)current + new_size +sizeOfMetaData());
 			new_meta_data->size = available - sizeOfMetaData();
 			new_meta_data->is_free = 1;
+
+
 		}
 
 		return va;
 	}
 
-	// to find a free block adjacent to the current block
+	//in this case my block is smaller than the new requested size
+	//so I will check the next block if free i will merge two blocks if not
+	//i will free the current block and reallocate using FF strategy
+
 	LIST_FOREACH(current, &memBlockList) {
-		if (current->prev_next_info.le_next->is_free && current->prev_next_info.le_next->size >= new_size) {
+
+		if (current->prev_next_info.le_next->is_free && current->prev_next_info.le_next->size >= new_size)
+		{
+
 			// Found a suitable free block, use it for realloc
 			struct BlockMetaData *free_block = current->prev_next_info.le_next;
+
 			int available = free_block->size - new_size;
+
 			free_block->is_free = 0;
+
 			free_block->size = 0;
+
 			if (available >= sizeOfMetaData()) {
+
+
 				struct BlockMetaData *new_meta_data = (struct BlockMetaData*)((char*)free_block + sizeOfMetaData());
 				new_meta_data->size = available - sizeOfMetaData();
 				new_meta_data->is_free = 1;
+
+
 			}
+
+
 			current->size = new_size + sizeOfMetaData();
 			current->is_free = 0;
 			return va;
+
+
 		}
 	}
 
 	// If no suitable free block is found, use sbrk to create more space on the heap
 	current->size = 0;
+
 	current->is_free = 1;
+
 	return alloc_block_FF(new_size);
+
 }

@@ -74,7 +74,7 @@ struct Command commands[] =
 		//********************************//
 		/* COMMANDS WITH THREE ARGUMENTS */
 		//********************************//
-		{ "rub", "reafds block of bytes from specific location in given environment" ,command_readuserblock, 3},
+		{ "rub", "reads block of bytes from specific location in given environment" ,command_readuserblock, 3},
 
 		//**************************************//
 		/* COMMANDS WITH AT LEAST ONE ARGUMENT */
@@ -398,11 +398,13 @@ struct Env * CreateEnv(int number_of_arguments, char **arguments)
 
 			break;
 		}
+#if USE_KHEAP == 0
 		if(pageWSSize > __PWS_MAX_SIZE)
 		{
 			cprintf("ERROR: size of WS must be less than or equal to %d... aborting", __PWS_MAX_SIZE);
 			return NULL;
 		}
+#endif
 		if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 		{
 			if (LRUSecondListSize > pageWSSize - 1)
