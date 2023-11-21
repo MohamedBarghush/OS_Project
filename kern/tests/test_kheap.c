@@ -72,7 +72,7 @@ int test_kmalloc()
 		if ((pf_calculate_free_frames() - freeDiskFrames) != 0) panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
 		if ((freeFrames - sys_calculate_free_frames()) != 0) panic("Wrong allocation: pages are not loaded successfully into memory");
 
-		cprintf("\nkmalloc: current evaluation = 10%");
+		cprintf("\nkmalloc: current evaluation = 10%\n");
 		//2 MB
 		freeFrames = sys_calculate_free_frames() ;
 		freeDiskFrames = pf_calculate_free_frames() ;
@@ -139,7 +139,7 @@ int test_kmalloc()
 		if ((pf_calculate_free_frames() - freeDiskFrames) != 0) panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
 		if ((freeFrames - sys_calculate_free_frames()) < 4) panic("Wrong allocation: pages are not loaded successfully into memory");
 
-		cprintf("\b\b\b50%");
+		cprintf("\b\b\b50%\n");
 		//Checking read/write on the allocated spaces
 		{
 			freeFrames = sys_calculate_free_frames() ;

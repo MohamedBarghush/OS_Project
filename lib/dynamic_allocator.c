@@ -133,7 +133,6 @@ void *alloc_block_FF(uint32 size)
 
 		LIST_FOREACH(myBlock, &memBlockList) {
 
-
 			if (myBlock->is_free) {
 
 				//saving the actual size of block in this variable
@@ -187,23 +186,31 @@ void *alloc_block_FF(uint32 size)
 
 					}//if its the last block
 					if (myBlock->prev_next_info.le_next == NULL) {
-
-						//calling system break
-						sbrk(0);
-						return NULL;
-
-
+						// allocate new block
+						struct BlockMetaData *new_block = (struct BlockMetaData *)sbrk(size + sizeOfMetaData());
+						if ((void *)new_block == (void *)-1) {
+							return NULL;
+						}
+						new_block->is_free = 0;
+						new_block->size = ROUNDUP(size + sizeOfMetaData(), PAGE_SIZE);
+						LIST_INSERT_TAIL(&memBlockList, new_block);
+						free_block((void*)(new_block + 1));
+						return alloc_block_FF(size);
 					}
 				}
 			}
 		}
 
 		//law sbrk msh tmm w msh httrf3 tdeny msa7a hrga3 NULL
-		if (sbrk(size + sizeOfMetaData()) == (void *)-1) {
+		struct BlockMetaData *new_block = (struct BlockMetaData *)sbrk(size + sizeOfMetaData());
+		if ((void *)new_block == (void *)-1) {
 			return NULL;
-
-
 		}
+		new_block->is_free = 0;
+		new_block->size = ROUNDUP(size + sizeOfMetaData(), PAGE_SIZE);
+		LIST_INSERT_TAIL(&memBlockList, new_block);
+		free_block((void*)(new_block + 1));
+		return alloc_block_FF(size);
 
 
 		return (void *)(myBlock + 1);

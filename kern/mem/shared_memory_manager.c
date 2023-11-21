@@ -30,7 +30,7 @@ void create_shares_array(uint32 numOfElements)
 	shares = kmalloc(numOfElements*sizeof(struct Share));
 	if (shares == NULL)
 	{
-		panic("Kernel runs out of memory\nCan't create the array of shared objects.");
+		// panic("Kernel runs out of memory\nCan't create the array of shared objects.");
 	}
 #endif
 	for (int i = 0; i < MAX_SHARES; ++i)
