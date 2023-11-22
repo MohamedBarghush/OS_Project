@@ -360,7 +360,7 @@ int map_frame(uint32 *ptr_page_directory, struct FrameInfo *ptr_frame_info, uint
 
 	}
 
-	cprintf("NOW .. map add = %x ptr_page_table = %x PTX(virtual_address) = %d\n", virtual_address, ptr_page_table,PTX(virtual_address));
+//	cprintf("NOW .. map add = %x ptr_page_table = %x PTX(virtual_address) = %d\n", virtual_address, ptr_page_table,PTX(virtual_address));
 	uint32 page_table_entry = ptr_page_table[PTX(virtual_address)];
 
 	/*OLD WRONG SOLUTION

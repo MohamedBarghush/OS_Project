@@ -19,26 +19,32 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 //	panic("not implemented yet");
 //	return 0;
 
+	// Set up initial kernel heap memory region
 	kinit.start = daStart;
 	kinit.segment_break = daStart + initSizeToAllocate;
 	kinit.hard_limit = daLimit;
 
-	uint32 *x = NULL;
-	for (uint32 i = kinit.start; i < kinit.segment_break; i += PAGE_SIZE) {
-		struct FrameInfo *pfi = get_frame_info(ptr_page_directory, i, &x);
-		if (pfi == NULL) {
-			//fr1 = allocate_frame(pfi);
-			allocate_frame(&pfi);
-		}
-		if (pfi != NULL) {
-			return 0;
-		}
-		map_frame(ptr_page_directory, pfi, i, PERM_PRESENT | PERM_WRITEABLE);
+	// Loop through the kernel heap memory region and allocate frames
+	for (uint32 i = kinit.start; i < kinit.hard_limit; i += PAGE_SIZE) {
+	    // Declare a pointer to a FrameInfo structure and initialize it to NULL
+	    struct FrameInfo *pfi = NULL;
+
+	    // Attempt to allocate a frame for the current address i
+	    if (allocate_frame(&pfi) != 0) {
+	        // If allocation fails, return the error code E_NO_MEM
+	        return E_NO_MEM;
+	    }
+
+	    // Map the allocated frame to the specified address i in the page directory
+	    map_frame(ptr_page_directory, pfi, i, PERM_WRITEABLE);
 	}
 
-
+	// Initialize the dynamic allocator for the kernel heap
 	initialize_dynamic_allocator(daStart, initSizeToAllocate);
+
+	// Return 0 to indicate successful initialization
 	return 0;
+
 }
 
 void* sbrk(int increment)
@@ -58,73 +64,66 @@ void* sbrk(int increment)
 	 * 		or the break exceed the limit of the dynamic allocator. If sbrk fails, kernel should panic(...)
 	 */
 
+	// Save the current state of the segment break
 	uint32 old_sbrk = kinit.segment_break;
 	uint32 current_sbrk = kinit.segment_break;
 	bool is_updated = 0;
 
+	// Declare a pointer to a FrameInfo structure and an integer pointer
 	struct FrameInfo *ptrNewFrame = NULL;
-	uint32 *x = NULL; // Replace some_initial_value with an appropriate initial value
+	uint32 *x = NULL; // Replace NULL with an appropriate initial value
 
+	// If increment is 0, return the current segment break
 	if (increment == 0) {
-		return (void *)old_sbrk;
-	}
-	if(current_sbrk + increment  >=  (kinit.hard_limit)){
-		panic("can not allocate memory");
+	    return (void *)old_sbrk;
 	}
 
-	if (increment > 0 && current_sbrk + increment  <=  (kinit.hard_limit)) {
-		if (increment * 1024 < 4 * 1024) {
-			current_sbrk += 4 * 1024;
-			// only map one frame
-			ptrNewFrame = get_frame_info(ptr_page_directory, current_sbrk, &x);
-			allocate_frame(&ptrNewFrame);
-			map_frame(ptr_page_directory, ptrNewFrame, current_sbrk, PERM_PRESENT | PERM_WRITEABLE);
-
-			is_updated = 1;
-		} else {
-			int needed_pages = increment / (4 * 1024) + 1;
-			current_sbrk += needed_pages * 4 * 1024;
-			// map chunks of frames
-			for (int i = old_sbrk; i < current_sbrk; i += PAGE_SIZE) {
-				ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
-				allocate_frame(&ptrNewFrame);
-				map_frame(ptr_page_directory, ptrNewFrame, i, PERM_PRESENT | PERM_WRITEABLE);
-			}
-			is_updated = 1;
-		}
-
+	// Check if increasing the segment break would exceed the hard limit
+	if (current_sbrk + increment >= kinit.hard_limit) {
+	    panic("cannot allocate memory, exceeded hard limit");
 	}
+
+	// Increase the segment break if increment is positive
+	if (increment > 0) {
+	    // Calculate the number of needed pages
+	    int needed_pages = ROUNDUP(increment, PAGE_SIZE) / PAGE_SIZE;
+	    current_sbrk += needed_pages * PAGE_SIZE;
+
+	    // Allocate frames and map them to the corresponding addresses
+	    for (int i = old_sbrk; i < current_sbrk; i += PAGE_SIZE) {
+	        ptrNewFrame = NULL;
+	        allocate_frame(&ptrNewFrame);
+	        map_frame(ptr_page_directory, ptrNewFrame, i, PERM_WRITEABLE);
+	    }
+
+	    // Set the update flag to true
+	    is_updated = 1;
+	}
+	// Decrease the segment break if increment is negative
 	else if (increment < 0) {
-		if (-increment  >= 4 * 1024) {
-			float needed_pages = -increment / (4 * 1024) ;
-			old_sbrk=current_sbrk -= ROUNDDOWN(needed_pages * 4 * 1024,(int )-increment / (4 * 1024)+1);
-//            current_sbrk -= ;
-			// unmap chunks of frames
-			for (int i = old_sbrk; i > current_sbrk; i -= PAGE_SIZE) {
-				ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
-				// No need to check if frame_was_mapped_at_address since it's not in your code
-				free_frame(ptrNewFrame);
-				unmap_frame(ptr_page_directory, i);
-			}
-			is_updated = 1;
-		} else if (-increment  < 4 * 1024 && current_sbrk - 4 * 1024 >= kinit.start) {
-			// unmap one frame
-			// No need to check if frame_was_mapped_at_address since it's not in your code
-			ptrNewFrame = get_frame_info(ptr_page_directory, current_sbrk, &x);
-			free_frame(ptrNewFrame);
-			unmap_frame(ptr_page_directory, current_sbrk);
-			old_sbrk=current_sbrk -= 4 * 1024;
-			is_updated = 1;
-		}
+	    // Calculate the number of needed pages
+	    int needed_pages = ROUNDUP(-increment, PAGE_SIZE) / PAGE_SIZE;
+	    current_sbrk -= needed_pages * PAGE_SIZE;
+
+	    // Free frames and unmap them from the corresponding addresses
+	    for (int i = old_sbrk; i > current_sbrk; i -= PAGE_SIZE) {
+	        ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
+	        free_frame(ptrNewFrame);
+	        unmap_frame(ptr_page_directory, i);
+	    }
+
+	    // Set the update flag to true
+	    is_updated = 1;
 	}
 
+	// Update the segment break if there was an update
 	if (is_updated) {
-		return (void *)old_sbrk;
+	    kinit.segment_break = current_sbrk;
+	    return (void *)old_sbrk;
 	} else {
-		// Handle error appropriately (return NULL, set an error code, etc.)
-		return (void *)-1;
-		panic("can not allocate memory");
-
+	    // Handle error appropriately (return NULL, set an error code, etc.)
+	    panic("cannot allocate/deallocate memory");
+	    return NULL;  // Added return NULL to suppress a warning
 	}
 }
 
@@ -138,55 +137,89 @@ void* kmalloc(unsigned int size)
 	//change this "return" according to your answer
 	//kpanic_into_prompt("kmalloc() is not implemented yet...!!");
 
-	cprintf ("%d size to allocate \n", size);
+	/*cprintf ("%d size to allocate \n", size);
 	cprintf ("%p my hard limit \n", kinit.hard_limit);
 	cprintf ("%p my start \n", kinit.start);
-	cprintf ("%p my segment break \n", kinit.segment_break);
+	cprintf ("%p my segment break \n", kinit.segment_break);*/
 
+	// Check if the kernel heap placement strategy is FIRSTFIT
 	if (isKHeapPlacementStrategyFIRSTFIT() == 0) {
-		return NULL;
+	    return NULL;  // Return NULL if not using FIRSTFIT strategy
 	}
 
-	if (size > kinit.hard_limit) {
-		return NULL;
+	// Check if the requested size exceeds the available space in the kernel heap
+	if (size > kinit.hard_limit - kinit.start) {
+	    return NULL;  // Return NULL if insufficient space in the kernel heap
 	}
 
+	// Check if the requested size is within the range that can be handled by the FIRSTFIT strategy
 	if (size <= DYN_ALLOC_MAX_BLOCK_SIZE) {
-		void* block = alloc_block_FF(size);
-		if (block != NULL) {
-			return block;
-		}
+	    // If the size is within the range, allocate a block using the FIRSTFIT strategy
+	    void* block = alloc_block_FF(size);
+	    if (block != NULL) {
+	        return block;  // Return the allocated block if successful
+	    }
 	}
-	else
-	{
-		uint32 num_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE;
-		uint32 total_size = num_pages * PAGE_SIZE;
+	else {
+	    // For larger allocations, use a ROUNDUP strategy to find a suitable contiguous block of memory
+	    uint32 num_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE;
+	    uint32 total_size = num_pages * PAGE_SIZE;
 
-		if (kinit.segment_break + total_size > kinit.hard_limit) {
-            return NULL;  // Not enough space in the kernel heap
-        }
+	    // Check if there is enough space in the current heap block
+	    if (kinit.segment_break + total_size > kinit.hard_limit) {
+	        return NULL;  // Return NULL if not enough space in the kernel heap
+	    }
 
-		uint32 start_k = KERNEL_HEAP_START;
-		for (int i = 0; i < num_pages; i++) {
-			uint32* ptr_page_table = NULL;
-			get_page_table(ptr_page_directory, start_k + i * PAGE_SIZE, &ptr_page_table);
-			if (ptr_page_table == NULL || (ptr_page_table[PTX(start_k + i * PAGE_SIZE)] & ~PERM_PRESENT)) {
-				struct FrameInfo* ptr_info;
-				int alloc_err = allocate_frame(&ptr_info);
-				if (alloc_err == 0) {
-					int map_err = map_frame(ptr_page_directory, ptr_info, start_k + i * PAGE_SIZE, PERM_WRITEABLE);
-					if (map_err != 0) {
-						return NULL;
-					}
-				}
-			}
-		}
+	    uint32 addr = kinit.hard_limit + PAGE_SIZE;
+	    int count = 0;
 
-		kinit.segment_break += total_size;
+	    // Iterate through the kernel heap region starting from the next available address
+	    // after the current segment break (kinit.hard_limit + PAGE_SIZE), incrementing by
+	    // PAGE_SIZE each time, until reaching the maximum address (KERNEL_HEAP_MAX).
+	    for (int i = kinit.hard_limit + PAGE_SIZE; i < KERNEL_HEAP_MAX; i += PAGE_SIZE) {
+	        // Check if there is enough space in the current heap block
+	        if (count == num_pages) {
+	            break;  // Break the loop if enough space is found
+	        }
 
-		return (void*)(kinit.segment_break - total_size);
+	        uint32 *ptr_page = NULL;
+	        uint32 table_ = get_page_table(ptr_page_directory, i, &ptr_page);
+	        uint32 page_ = ptr_page[PTX(i)];
+
+	        // Check if the page is present in the page table and has the present permission
+	        if (page_ && (PERM_PRESENT)) {
+	            count = 0;
+	            addr = i + PAGE_SIZE;
+//	            tlb_invalidate (ptr_page_directory, &addr);
+	            continue;  // Reset count and address if the page is already allocated
+	        }
+	        else {
+	            count++;
+	        }
+	    }
+
+	    // If enough space is found, allocate and map the page frames
+	    if (count == num_pages) {
+	        uint32 temp = addr;
+
+	        for (int i = 0; i < num_pages; i++) {
+	            // Allocate the page frame
+	            struct FrameInfo *ptr_info = NULL;
+	            int all_err = allocate_frame(&ptr_info);
+
+	            if (all_err == 0) {
+	                // Map the page frame to the virtual address
+	                map_frame(ptr_page_directory, ptr_info, addr, PERM_WRITEABLE);
+	            }
+	            addr += PAGE_SIZE;
+	        }
+
+	        return (void*)temp;  // Return the starting address of the allocated memory block
+	    }
 	}
-	return NULL;
+
+	return NULL;  // Return NULL if allocation is unsuccessful
+
 }
 
 void kfree(void* virtual_address)
@@ -194,26 +227,43 @@ void kfree(void* virtual_address)
 	//TODO: [PROJECT'23.MS2 - #04] [1] KERNEL HEAP - kfree()
 	//refer to the project presentation and documentation for details
 	// Write your code here, remove the panic and write your code
-// 	uint32 va=(uint32 )virtual_address;
-// 	uint32 viradd=ROUNDDOWN((uint32 )virtual_address,PAGE_SIZE);
-// 	uint32 pstrt = (uint32)(kinit.hard_limit + PAGE_SIZE);
-// 	if(va>=KERNEL_HEAP_START && va<=kinit.hard_limit){
-// //		struct FrameInfo *ff =get_frame_info(ptr_page_directory, viradd, &PT);
-// //        unmap_frame(ptr_page_directory,viradd);
-// //        tlb_invalidate(ptr_page_directory, (uint32*)viradd);
-// //        free_block((uint32*)viradd);
-// //        free_frame(ff);
-// 		  free_block((uint32*)viradd);
 
-// 	} else if (viradd>=pstrt&&viradd <=KERNEL_HEAP_MAX){
-// 		uint32 *PT;
-// 		struct FrameInfo *ff =get_frame_info(ptr_page_directory, viradd, &PT);
-// 	    unmap_frame(ptr_page_directory,viradd);
-// 	    //tlb_invalidate(ptr_page_directory, (uint32*)viradd);
-// 	    free_frame(ff);
-// 	}else{
-// 		panic("ENTER INVALIDE ADDRESS !!\n");
-// 	}
+
+	// Convert the virtual address to an unsigned 32-bit integer
+	uint32 va = (uint32)virtual_address;
+
+	// Round down the virtual address to the nearest page boundary
+	uint32 viradd = ROUNDDOWN((uint32)virtual_address, PAGE_SIZE);
+
+	// Set the start of the physical memory range for kernel heap
+	uint32 kernel_heap_start = (uint32)(kinit.hard_limit + PAGE_SIZE);
+
+	// Check if the virtual address is within the kernel heap region
+	if (va >= KERNEL_HEAP_START && va <= kinit.hard_limit) {
+		cprintf("Freeing Block Allocator space \n");
+	    // The virtual address is within the kernel heap region
+	    free_block((uint32*)viradd); // Free the block associated with the virtual address
+	} else if (viradd >= kernel_heap_start && viradd <= KERNEL_HEAP_MAX) {
+	    // The virtual address is within the extended kernel heap region
+	    uint32 *PT = NULL;
+	    struct FrameInfo *ff = get_frame_info(ptr_page_directory, viradd, &PT);
+	    cprintf("Freeing Page Allocator space \n");
+
+	    uint32 *ptr_page = NULL;
+	    get_page_table(ptr_page_directory, viradd, &ptr_page);
+	    for (int i = viradd; i < viradd+PAGE_SIZE; i+=PAGE_SIZE) {
+
+	    }
+	    free_frame (ff);
+	    unmap_frame(ptr_page_directory, viradd);
+	    // Uncomment the following line if you want to perform additional actions
+	    // tlb_invalidate(ptr_page_directory, (uint32*)viradd);
+	    // free_frame(ff); // Free the frame associated with the virtual address
+	} else {
+		cprintf("Invalid space \n");
+	    // The virtual address is invalid
+	    panic("ENTER INVALID ADDRESS !!\n");
+	}
 
 }
 

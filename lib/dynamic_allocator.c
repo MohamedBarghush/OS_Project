@@ -89,30 +89,30 @@ bool is_initialized = 0;
 void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpace)
 {
 	//initializing first metadata block
-	    struct BlockMetaData* init__blocK1= (struct BlockMetaData*)(daStart);
-	    //=========================================
-	    //DON'T CHANGE THESE LINES=================
-	    if (initSizeOfAllocatedSpace == 0)
-	        return ;
-	    is_initialized = 1;
-	    //=========================================
-	    //=========================================
+	struct BlockMetaData* init__blocK1= (struct BlockMetaData*)(daStart);
+	//=========================================
+	//DON'T CHANGE THESE LINES=================
+	if (initSizeOfAllocatedSpace == 0)
+		return ;
+	is_initialized = 1;
+	//=========================================
+	//=========================================
 
-	    //setting size of next block = zero
-	    init__blocK1->size=initSizeOfAllocatedSpace;
+	//setting size of next block = zero
+	init__blocK1->size=initSizeOfAllocatedSpace;
 
-	    //setting metadata block status as free
-	    init__blocK1->is_free=1;
+	//setting metadata block status as free
+	init__blocK1->is_free=1;
 
-	    //setting previous pointer to this block
-	    init__blocK1->prev_next_info.le_prev=init__blocK1;
+	//setting previous pointer to this block
+	init__blocK1->prev_next_info.le_prev=init__blocK1;
 
-	    //setting pointer to null
-	    init__blocK1->prev_next_info.le_next=NULL;
+	//setting pointer to null
+	init__blocK1->prev_next_info.le_next=NULL;
 
-		LIST_INIT(&memBlockList);
+	LIST_INIT(&memBlockList);
 
-		LIST_INSERT_HEAD(&memBlockList, init__blocK1);
+	LIST_INSERT_HEAD(&memBlockList, init__blocK1);
 
 
 }
@@ -123,97 +123,95 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 void *alloc_block_FF(uint32 size)
 {
 	//empty size case
-	    if (size == 0)
-	    {
-			return NULL;
-		}
+	if (size == 0)
+	{
+		return NULL;
+	}
 
-		struct BlockMetaData *myBlock = NULL;
-		struct BlockMetaData *newBlock = NULL;
+	struct BlockMetaData *myBlock = NULL;
+	struct BlockMetaData *newBlock = NULL;
 
-		LIST_FOREACH(myBlock, &memBlockList) {
+	LIST_FOREACH(myBlock, &memBlockList) {
 
-			if (myBlock->is_free) {
+		if (myBlock->is_free) {
 
-				//saving the actual size of block in this variable
-				int actualSize = myBlock->size - sizeOfMetaData();
+			//saving the actual size of block in this variable
+			int actualSize = myBlock->size - sizeOfMetaData();
 
-				//case 1: if block can fit into free space easily
-				if (actualSize > size + sizeOfMetaData()) {
+			//case 1: if block can fit into free space easily
+			if (actualSize > size + sizeOfMetaData()) {
 
-					//initializing the new metadata block
-					newBlock = (struct BlockMetaData *)((char *)myBlock + sizeOfMetaData() + size);
-					//setting its size
-					newBlock->size = myBlock->size - size - sizeOfMetaData();
-					//setting free status
-					newBlock->is_free = 1;
+				//initializing the new metadata block
+				newBlock = (struct BlockMetaData *)((char *)myBlock + sizeOfMetaData() + size);
+				//setting its size
+				newBlock->size = myBlock->size - size - sizeOfMetaData();
+				//setting free status
+				newBlock->is_free = 1;
 
-					//setting block status as not free
-					myBlock->is_free = 0;
-					//setting its size
-					myBlock->size = size+sizeOfMetaData();
-					if (newBlock) {
+				//setting block status as not free
+				myBlock->is_free = 0;
+				//setting its size
+				myBlock->size = size+sizeOfMetaData();
+				if (newBlock) {
 
-						LIST_INSERT_AFTER(&memBlockList, myBlock, newBlock);
-
-					}
-
-
-
-					return (void *)(myBlock + 1);
-
+					LIST_INSERT_AFTER(&memBlockList, myBlock, newBlock);
 
 				}
-				// case 2: if block exactly fits in free space
-				else if (actualSize == size + sizeOfMetaData()) {
-
-					//setting block status as not free
-					myBlock->is_free = 0;
-
-					return (void *)(myBlock + 1);
-
-				}
-				//case 3: if block doesn't fit in free space
-				else {
-
-					//case 3.1:if data block fits
-					if (actualSize >= size) {
 
 
-						myBlock->is_free=0;
-						return (void *)(myBlock+1);
+				return (void *)(myBlock + 1);
+
+			}
+			// case 2: if block exactly fits in free space
+			else if (actualSize == size + sizeOfMetaData()) {
+
+				//setting block status as not free
+				myBlock->is_free = 0;
+
+				return (void *)(myBlock + 1);
+
+			}
+			//case 3: if block doesn't fit in free space
+			else {
+
+				//case 3.1:if data block fits
+				if (actualSize >= size) {
 
 
-					}//if its the last block
-					if (myBlock->prev_next_info.le_next == NULL) {
-						// allocate new block
-						struct BlockMetaData *new_block = (struct BlockMetaData *)sbrk(size + sizeOfMetaData());
-						if ((void *)new_block == (void *)-1) {
-							return NULL;
-						}
-						new_block->is_free = 0;
-						new_block->size = ROUNDUP(size + sizeOfMetaData(), PAGE_SIZE);
-						LIST_INSERT_TAIL(&memBlockList, new_block);
-						free_block((void*)(new_block + 1));
-						return alloc_block_FF(size);
+					myBlock->is_free=0;
+					return (void *)(myBlock+1);
+
+
+				}//if its the last block
+				if (myBlock->prev_next_info.le_next == NULL) {
+					// allocate new block
+					struct BlockMetaData *new_block = (struct BlockMetaData *)sbrk(size + sizeOfMetaData());
+					if ((void *)new_block == (void *)-1) {
+						return NULL;
 					}
+					new_block->is_free = 0;
+					new_block->size = ROUNDUP(size + sizeOfMetaData(), PAGE_SIZE);
+					LIST_INSERT_TAIL(&memBlockList, new_block);
+					free_block((void*)(new_block + 1));
+					return alloc_block_FF(size);
 				}
 			}
 		}
+	}
 
-		//law sbrk msh tmm w msh httrf3 tdeny msa7a hrga3 NULL
-		struct BlockMetaData *new_block = (struct BlockMetaData *)sbrk(size + sizeOfMetaData());
-		if ((void *)new_block == (void *)-1) {
-			return NULL;
-		}
-		new_block->is_free = 0;
-		new_block->size = ROUNDUP(size + sizeOfMetaData(), PAGE_SIZE);
-		LIST_INSERT_TAIL(&memBlockList, new_block);
-		free_block((void*)(new_block + 1));
-		return alloc_block_FF(size);
+	//law sbrk msh tmm w msh httrf3 tdeny msa7a hrga3 NULL
+	struct BlockMetaData *new_block = (struct BlockMetaData *)sbrk(size + sizeOfMetaData());
+	if ((void *)new_block == (void *)-1) {
+		return NULL;
+	}
+	new_block->is_free = 0;
+	new_block->size = ROUNDUP(size + sizeOfMetaData(), PAGE_SIZE);
+	LIST_INSERT_TAIL(&memBlockList, new_block);
+	free_block((void*)(new_block + 1));
+	return alloc_block_FF(size);
 
 
-		return (void *)(myBlock + 1);
+	return (void *)(myBlock + 1);
 }
 //=========================================
 // [5] ALLOCATE BLOCK BY BEST FIT:

@@ -72,7 +72,7 @@ int test_kmalloc()
 		if ((pf_calculate_free_frames() - freeDiskFrames) != 0) panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
 		if ((freeFrames - sys_calculate_free_frames()) != 0) panic("Wrong allocation: pages are not loaded successfully into memory");
 
-		cprintf("\nkmalloc: current evaluation = 10%\n");
+		cprintf("\nkmalloc: current evaluation = 10%");
 		//2 MB
 		freeFrames = sys_calculate_free_frames() ;
 		freeDiskFrames = pf_calculate_free_frames() ;
@@ -139,7 +139,7 @@ int test_kmalloc()
 		if ((pf_calculate_free_frames() - freeDiskFrames) != 0) panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
 		if ((freeFrames - sys_calculate_free_frames()) < 4) panic("Wrong allocation: pages are not loaded successfully into memory");
 
-		cprintf("\b\b\b50%\n");
+		cprintf("\b\b\b50%");
 		//Checking read/write on the allocated spaces
 		{
 			freeFrames = sys_calculate_free_frames() ;
@@ -234,7 +234,7 @@ int test_kmalloc()
 				panic("Wrong permissions: pages should be mapped with Supervisor permission only");
 		}
 
-		cprintf("\b\b\b100%\n");
+		cprintf("\b\b\b100%");
 
 	}
 
@@ -329,12 +329,16 @@ int test_kmalloc_firstfit1()
 		if ((freeFrames - sys_calculate_free_frames()) < 768) panic("Wrong allocation: ");
 	}
 
+	cprintf("\nkfree: current evaluation = 10%"); // Added by Mohamed Gamal
+
 	//[2] Free some to create holes
 	{
 		//1 MB Hole
 		freeFrames = sys_calculate_free_frames() ;
 		freeDiskFrames = pf_calculate_free_frames() ;
 		kfree(ptr_allocations[1]);
+		cprintf("These are the system free frames %d \n", sys_calculate_free_frames());
+		cprintf("These are the free frames %d \n", freeFrames);
 		if((pf_calculate_free_frames() - freeDiskFrames) !=  0)  panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
 		if ((sys_calculate_free_frames() - freeFrames) < 256) panic("Wrong free: ");
 
@@ -352,6 +356,8 @@ int test_kmalloc_firstfit1()
 		if((pf_calculate_free_frames() - freeDiskFrames) !=  0)  panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
 		if ((sys_calculate_free_frames() - freeFrames) < 768) panic("Wrong free: ");
 	}
+
+	cprintf("\nkfree: current evaluation = 50%"); // Added by Mohamed Gamal
 
 	//[3] Allocate again [test first fit]
 	{
@@ -398,6 +404,8 @@ int test_kmalloc_firstfit1()
 		if ((freeFrames - sys_calculate_free_frames()) < 1024) panic("Wrong allocation: ");
 	}
 
+	cprintf("\nkfree: current evaluation = 70%"); // Added by Mohamed Gamal
+
 	//[4] Free contiguous allocations
 	{
 		//1 MB Hole appended to previous 256 KB hole
@@ -414,6 +422,8 @@ int test_kmalloc_firstfit1()
 		if((pf_calculate_free_frames() - freeDiskFrames) !=  0)  panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
 		if ((sys_calculate_free_frames() - freeFrames) < 256) panic("Wrong free: ");
 	}
+
+	cprintf("\nkfree: current evaluation = 90%"); // Added by Mohamed Gamal
 
 	//[5] Allocate again [test first fit]
 	{
