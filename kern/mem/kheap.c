@@ -93,6 +93,7 @@ void* sbrk(int increment)
 	    for (int i = old_sbrk; i < current_sbrk; i += PAGE_SIZE) {
 	        ptrNewFrame = NULL;
 	        allocate_frame(&ptrNewFrame);
+	        ptrNewFrame->va = i;
 	        map_frame(ptr_page_directory, ptrNewFrame, i, PERM_WRITEABLE);
 	    }
 
@@ -101,25 +102,32 @@ void* sbrk(int increment)
 	}
 	// Decrease the segment break if increment is negative
 	else if (increment < 0) {
-	    // Calculate the number of needed pages
-	    int needed_pages = ROUNDUP(-increment, PAGE_SIZE) / PAGE_SIZE;
-	    current_sbrk -= needed_pages * PAGE_SIZE;
+	    if (-increment > PAGE_SIZE) {
+	    	// Calculate the number of needed pages
+			int needed_pages = ROUNDUP(-increment, PAGE_SIZE) / PAGE_SIZE;
+			current_sbrk -= needed_pages * PAGE_SIZE;
 
-	    // Free frames and unmap them from the corresponding addresses
-	    for (int i = old_sbrk; i > current_sbrk; i -= PAGE_SIZE) {
-	        ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
-	        free_frame(ptrNewFrame);
-	        unmap_frame(ptr_page_directory, i);
+			// Free frames and unmap them from the corresponding addresses
+			for (int i = old_sbrk; i > current_sbrk; i -= PAGE_SIZE) {
+				ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
+				free_frame(ptrNewFrame);
+				unmap_frame(ptr_page_directory, i);
+			}
+	    } else {
+	    	current_sbrk -= increment;
 	    }
 
 	    // Set the update flag to true
-	    is_updated = 1;
+	    is_updated = -1;
 	}
 
 	// Update the segment break if there was an update
-	if (is_updated) {
+	if (is_updated == 1) {
 	    kinit.segment_break = current_sbrk;
 	    return (void *)old_sbrk;
+	} else if (is_updated == -1) {
+		kinit.segment_break = current_sbrk;
+		return (void *)current_sbrk;
 	} else {
 	    // Handle error appropriately (return NULL, set an error code, etc.)
 	    panic("cannot allocate/deallocate memory");
@@ -127,7 +135,7 @@ void* sbrk(int increment)
 	}
 }
 
-
+struct kheap_data kData[NUM_OF_KHEAP_PAGES];
 void* kmalloc(unsigned int size)
 {
 	//TODO: [PROJECT'23.MS2 - #03] [1] KERNEL HEAP - kmalloc()
@@ -141,6 +149,8 @@ void* kmalloc(unsigned int size)
 	cprintf ("%p my hard limit \n", kinit.hard_limit);
 	cprintf ("%p my start \n", kinit.start);
 	cprintf ("%p my segment break \n", kinit.segment_break);*/
+
+	uint32 start = 0;
 
 	// Check if the kernel heap placement strategy is FIRSTFIT
 	if (isKHeapPlacementStrategyFIRSTFIT() == 0) {
@@ -164,11 +174,6 @@ void* kmalloc(unsigned int size)
 	    // For larger allocations, use a ROUNDUP strategy to find a suitable contiguous block of memory
 	    uint32 num_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE;
 	    uint32 total_size = num_pages * PAGE_SIZE;
-
-	    // Check if there is enough space in the current heap block
-	    if (kinit.segment_break + total_size > kinit.hard_limit) {
-	        return NULL;  // Return NULL if not enough space in the kernel heap
-	    }
 
 	    uint32 addr = kinit.hard_limit + PAGE_SIZE;
 	    int count = 0;
@@ -200,7 +205,7 @@ void* kmalloc(unsigned int size)
 
 	    // If enough space is found, allocate and map the page frames
 	    if (count == num_pages) {
-	        uint32 temp = addr;
+	        start = addr;
 
 	        for (int i = 0; i < num_pages; i++) {
 	            // Allocate the page frame
@@ -209,15 +214,22 @@ void* kmalloc(unsigned int size)
 
 	            if (all_err == 0) {
 	                // Map the page frame to the virtual address
+	            	ptr_info->va = addr + PAGE_SIZE + PAGE_SIZE*i;
 	                map_frame(ptr_page_directory, ptr_info, addr, PERM_WRITEABLE);
 	            }
 	            addr += PAGE_SIZE;
 	        }
 
-	        return (void*)temp;  // Return the starting address of the allocated memory block
+//	        return (void*)start;  // Return the starting address of the allocated memory block
 	    }
 	}
-
+	for (int i = 0; i < NUM_OF_KHEAP_PAGES; i++) {
+		if (kData[i].start == (uint32*)0) {
+			kData[i].start = (uint32*)start;
+			kData[i].size = size;
+			return (void*)start;
+		}
+	}
 	return NULL;  // Return NULL if allocation is unsuccessful
 
 }
@@ -230,37 +242,50 @@ void kfree(void* virtual_address)
 
 
 	// Convert the virtual address to an unsigned 32-bit integer
-	uint32 va = (uint32)virtual_address;
+	uint32 positive_va = (uint32)virtual_address;
 
 	// Round down the virtual address to the nearest page boundary
-	uint32 viradd = ROUNDDOWN((uint32)virtual_address, PAGE_SIZE);
+	uint32 va = ROUNDDOWN((uint32)positive_va, PAGE_SIZE);
 
 	// Set the start of the physical memory range for kernel heap
 	uint32 kernel_heap_start = (uint32)(kinit.hard_limit + PAGE_SIZE);
 
 	// Check if the virtual address is within the kernel heap region
-	if (va >= KERNEL_HEAP_START && va <= kinit.hard_limit) {
-		cprintf("Freeing Block Allocator space \n");
+	if (positive_va >= KERNEL_HEAP_START && positive_va < kinit.hard_limit) {
+//		cprintf("Freeing Block Allocator space \n");
 	    // The virtual address is within the kernel heap region
-	    free_block((uint32*)viradd); // Free the block associated with the virtual address
-	} else if (viradd >= kernel_heap_start && viradd <= KERNEL_HEAP_MAX) {
-	    // The virtual address is within the extended kernel heap region
-	    uint32 *PT = NULL;
-	    struct FrameInfo *ff = get_frame_info(ptr_page_directory, viradd, &PT);
-	    cprintf("Freeing Page Allocator space \n");
+	    free_block((uint32*)va); // Free the block associated with the virtual address
+	} else if (va >= kernel_heap_start && va < KERNEL_HEAP_MAX) {
+//		cprintf("This is my segment_brk: %p\n", kernel_heap_start);
+	    // Get Table position from the directory table
+		// Get the page table itself from the memory
+		uint32* page_table_address = NULL;
+		get_page_table(ptr_page_directory, va, &page_table_address);
+//		cprintf("This is the page table pointer: %p\n", page_table_address);
+		// Iterate over every single entry in the page table and:
+		//		- Unmap the frame
+		int index = 0;
+		for (int i = 0; i < NUM_OF_KHEAP_PAGES; i++) {
+			if (positive_va == (uint32)kData[i].start) {
+				index = i;
+			}
+		}
 
-	    uint32 *ptr_page = NULL;
-	    get_page_table(ptr_page_directory, viradd, &ptr_page);
-	    for (int i = viradd; i < viradd+PAGE_SIZE; i+=PAGE_SIZE) {
-
-	    }
-	    free_frame (ff);
-	    unmap_frame(ptr_page_directory, viradd);
-	    // Uncomment the following line if you want to perform additional actions
-	    // tlb_invalidate(ptr_page_directory, (uint32*)viradd);
-	    // free_frame(ff); // Free the frame associated with the virtual address
+		for (int i = 0; i < kData[index].size; i++) {
+//			cprintf("My Table is at: %p\n", i);
+//			if (i == 0) {
+//				cprintf("Exit NIGGA\n");
+//				continue;
+//			}
+			uint32* temp = NULL;
+			struct FrameInfo * ptr_new_frame = get_frame_info(ptr_page_directory, (uint32)kData[index].start+i, &temp);
+//			cprintf("This is my frame %p - %p\n", positive_va, ptr_new_frame->va);
+//			free_frame(ptr_new_frame);
+			unmap_frame(ptr_page_directory, (uint32)kData[index].start+i);
+		}
+		// Unmap the frame of the page table itself
 	} else {
-		cprintf("Invalid space \n");
+//		cprintf("Invalid space \n");
 	    // The virtual address is invalid
 	    panic("ENTER INVALID ADDRESS !!\n");
 	}

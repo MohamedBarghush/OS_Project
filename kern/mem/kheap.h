@@ -49,6 +49,12 @@ struct kheap_init {
     uint32 hard_limit;
 };
 struct kheap_init kinit;
+
+struct kheap_data {
+	uint32* start;
+	uint32 size;
+};
+
 //====================================================================================
 
 #endif // FOS_KERN_KHEAP_H_

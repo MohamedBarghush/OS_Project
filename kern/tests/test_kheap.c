@@ -1338,6 +1338,7 @@ int test_kfree()
 		freeFrames = sys_calculate_free_frames() ;
 		freeDiskFrames = pf_calculate_free_frames() ;
 		ptr_allocations[0] = kmalloc(2*Mega-kilo);
+		cprintf("free : %d %d\n", start_freeFrames, freeDiskFrames);
 		if ((uint32) ptr_allocations[0] !=  (ACTUAL_START)) panic("Wrong start address for the allocated space... check return address of kmalloc & updating of heap ptr");
 		if ((pf_calculate_free_frames() - freeDiskFrames) != 0) panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
 		if ((freeFrames - sys_calculate_free_frames()) != 512) panic("Wrong allocation: pages are not loaded successfully into memory");
@@ -1895,12 +1896,14 @@ int test_kfree_bestfirstfit()
 		int freeDiskFrames = pf_calculate_free_frames() ;
 		kfree(ptr_allocations[0]);
 		if ((freeDiskFrames - pf_calculate_free_frames()) != 0) panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
+//		cprintf("These are the free frames: %d %d \n", freeFrames, sys_calculate_free_frames());
 		if ((sys_calculate_free_frames() - freeFrames) < 512 ) panic("Wrong kfree: pages in memory are not freed correctly");
 
 		//kfree 1st 2 KB
 		freeFrames = sys_calculate_free_frames() ;
 		freeDiskFrames = pf_calculate_free_frames() ;
 		kfree(ptr_allocations[2]);
+		cprintf("This is me!\n");
 		if ((freeDiskFrames - pf_calculate_free_frames()) != 0) panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
 		if ((sys_calculate_free_frames() - freeFrames) != 0 ) panic("Wrong free: freeing a block from the dynamic allocator should not affect the free frames");
 
@@ -1918,8 +1921,6 @@ int test_kfree_bestfirstfit()
 		if ((freeDiskFrames - pf_calculate_free_frames()) != 0) panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
 		if ((sys_calculate_free_frames() - freeFrames) < 6*Mega/4096) panic("Wrong kfree: pages in memory are not freed correctly");
 	}
-
-	cprintf("\nkfree: current evaluation = 10%");
 
 	//Check memory access after kfree [10%]
 	{
@@ -1955,7 +1956,6 @@ int test_kfree_bestfirstfit()
 		}
 		if (sums[7] != 7*lastIndices[7])	panic("kfree: invalid read after freeing some allocations");
 	}
-	cprintf("\b\b\b20%");
 
 	//Allocate after kfree [15%]
 	{
@@ -2002,7 +2002,6 @@ int test_kfree_bestfirstfit()
 			ptr[i] = 10 ;
 		}
 	}
-	cprintf("\b\b\b35%");
 
 	//kfree remaining allocated spaces [15%]
 	{
@@ -2057,7 +2056,6 @@ int test_kfree_bestfirstfit()
 
 		//				if(start_freeFrames != (sys_calculate_free_frames())) {panic("Wrong kfree: not all pages removed correctly at end");}
 	}
-	cprintf("\b\b\b50%");
 
 	//Check memory access after kfree [15%]
 	{
@@ -2083,7 +2081,6 @@ int test_kfree_bestfirstfit()
 		//set it to 0 again to cancel the bypassing option
 		sys_bypassPageFault(0);
 	}
-	cprintf("\b\b\b65%");
 
 	//	//kfree non-exist item [10%]
 	//	{
