@@ -242,20 +242,20 @@ void kfree(void* virtual_address)
 
 
 	// Convert the virtual address to an unsigned 32-bit integer
-	uint32 positive_va = (uint32)virtual_address;
+	uint32 va = (uint32)virtual_address;
 
 	// Round down the virtual address to the nearest page boundary
-	uint32 va = ROUNDDOWN((uint32)positive_va, PAGE_SIZE);
+	//uint32 va = ROUNDDOWN((uint32)positive_va, PAGE_SIZE);
 
 	// Set the start of the physical memory range for kernel heap
 	uint32 kernel_heap_start = (uint32)(kinit.hard_limit + PAGE_SIZE);
 
 	// Check if the virtual address is within the kernel heap region
-	if (positive_va >= KERNEL_HEAP_START && positive_va < kinit.hard_limit) {
+	if (va >= KERNEL_HEAP_START && va < kinit.hard_limit) {
 //		cprintf("Freeing Block Allocator space \n");
 	    // The virtual address is within the kernel heap region
 	    free_block((uint32*)va); // Free the block associated with the virtual address
-	} else if (va >= kernel_heap_start && va < KERNEL_HEAP_MAX) {
+	} else if (va >=	 kernel_heap_start && va < KERNEL_HEAP_MAX) {
 //		cprintf("This is my segment_brk: %p\n", kernel_heap_start);
 	    // Get Table position from the directory table
 		// Get the page table itself from the memory
@@ -266,7 +266,7 @@ void kfree(void* virtual_address)
 		//		- Unmap the frame
 		int index = 0;
 		for (int i = 0; i < NUM_OF_KHEAP_PAGES; i++) {
-			if (positive_va == (uint32)kData[i].start) {
+			if (va == (uint32)kData[i].start) {
 				index = i;
 			}
 		}
