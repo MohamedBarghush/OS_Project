@@ -15,11 +15,41 @@
 #if USE_KHEAP
 inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, uint32 virtual_address)
 {
-	//TODO: [PROJECT'23.MS2 - #14] [3] PAGE FAULT HANDLER - Create a new working set element
-	// Write your code here, remove the panic and write your code
-	panic("env_page_ws_list_create_element() is not implemented yet...!!");
-	return NULL;
+	// Calc size of the WorkingSetElement
+	 uint32 size = sizeof(struct WorkingSetElement);
+	 // Allocate memory for WorkingSetElement
+	    struct WorkingSetElement* wrk = (struct WorkingSetElement*)kmalloc(size);
+
+	    if (wrk != (void *)virtual_address) {
+	    	// Initialize the virtual address of the working set
+	        wrk->virtual_address = virtual_address;
+	    }else {
+	        // Memory allocation failed panic
+	        panic("Memory allocation failed in:: list_create_element");
+	    }
+
+	    return wrk;
 }
+//inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, uint32 virtual_address)
+//{
+//	//TODO: [PROJECT'23.MS2 - #14] [3] PAGE FAULT HANDLER - Create a new working set element
+//	// Write your code here, remove the panic and write your code
+//    if( env_page_ws_get_size(e) < e->page_WS_max_size ){
+//    	struct WorkingSetElement *new_element=NULL;
+//	    new_element->virtual_address=virtual_address;
+//	new_element->prev_next_info.le_next=NULL;
+//	if(new_element){
+//		return new_element;
+//	   }
+//	panic("cannot create new working set");
+//	}
+//
+//
+//	else{
+//		panic("cannot create new working set");
+//	    }
+//
+//}
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))

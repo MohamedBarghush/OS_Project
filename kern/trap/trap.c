@@ -374,6 +374,25 @@ void fault_handler(struct Trapframe *tf)
 	{
 		if (userTrap)
 		{
+			bool Passed=1;
+			int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
+
+			if(fault_va >=KERNEL_HEAP_START){
+				Passed=0;
+			}
+			//marked not verified
+			else if (perms & ~PERM_MODIFIED) {
+			    Passed = 0;
+			}
+
+			else if(fault_va>=UVPT &&fault_va<=USER_LIMIT){
+
+				Passed=0;
+			}
+			if(Passed==0){
+				sched_kill_env(faulted_env->env_id);
+			}
+
 			/*============================================================================================*/
 			//TODO: [PROJECT'23.MS2 - #13] [3] PAGE FAULT HANDLER - Check for invalid pointers
 			//(e.g. pointing to unmarked user heap page, kernel or wrong access rights),
