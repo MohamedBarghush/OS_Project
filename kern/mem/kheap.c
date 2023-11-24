@@ -294,27 +294,58 @@ void kfree(void* virtual_address)
 
 unsigned int kheap_virtual_address(unsigned int physical_address)
 {
-	//TODO: [PROJECT'23.MS2 - #05] [1] KERNEL HEAP - kheap_virtual_address()
-	//refer to the project presentation and documentation for details
-	// Write your code here, remove the panic and write your code
-	panic("kheap_virtual_address() is not implemented yet...!!");
+	//frames_info get_frame_info
+   //TODO: [PROJECT'23.MS2 - #05] [1] KERNEL HEAP - kheap_virtual_address()
+   //refer to the project presentation and documentation for details
+   // Write your code here, remove the panic and write your code
+   //panic("kheap_virtual_address() is not implemented yet...!!");
 
-	//EFFICIENT IMPLEMENTATION ~O(1) IS REQUIRED ==================
+   //EFFICIENT IMPLEMENTATION ~O(1) IS REQUIRED ==================
+   uint32 frame_number = physical_address / PAGE_SIZE;
 
-	//change this "return" according to your answer
-	return 0;
+       // Calculate the virtual address directly based on the frame number
+       uint32 virtual_address = KERNEL_HEAP_START + (frame_number * PAGE_SIZE);
+       // Check if the calculated virtual address is within the valid range
+       if (virtual_address >= KERNEL_HEAP_START && virtual_address < KERNEL_HEAP_MAX)
+       {
+           uint32 *PageT_ptr = NULL;
+           uint32 pt_index = PTX((void *)virtual_address);
+
+           get_page_table(ptr_page_directory,virtual_address, &PageT_ptr);
+
+           uint32 page_present = PageT_ptr[pt_index] & PERM_PRESENT;
+           uint32 f_n = PageT_ptr[PTX(virtual_address)] / PAGE_SIZE;
+           // Check if the frame number matches and the page is present
+           if (f_n == frame_number && page_present != 0)
+           {
+               return virtual_address;
+           }
+       }
+
+       // If no matching virtual address is found, return 0
+       return 0;
 }
 
 unsigned int kheap_physical_address(unsigned int virtual_address)
 {
-	//TODO: [PROJECT'23.MS2 - #06] [1] KERNEL HEAP - kheap_physical_address()
-	//refer to the project presentation and documentation for details
-	// Write your code here, remove the panic and write your code
-	panic("kheap_physical_address() is not implemented yet...!!");
+   // TODO: [PROJECT'23.MS2 - #06] [1] KERNEL HEAP - kheap_physical_address()
+   // Refer to the project presentation and documentation for details
+   // Write your code here, remove the panic and write your code
+   uint32 *PageT_ptr = NULL;
+       get_page_table(ptr_page_directory, virtual_address, &PageT_ptr);
 
-	//change this "return" according to your answer
-	return 0;
-}
+       if (PageT_ptr != NULL)
+       {
+           // Extract the frame number from the page table entry
+           unsigned int frame_number = PageT_ptr[PTX(virtual_address)] / PAGE_SIZE;
+
+           // Calculate the physical address by combining the frame number and offset
+           unsigned int offset = virtual_address % PAGE_SIZE;
+           return (frame_number * PAGE_SIZE) + offset;
+       }
+
+       return 0;
+   }
 
 
 void kfreeall()
