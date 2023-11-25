@@ -104,17 +104,17 @@ void* sbrk(int increment)
 	else if (increment < 0) {
 	    if (-increment > PAGE_SIZE) {
 	    	// Calculate the number of needed pages
-			int needed_pages = ROUNDUP(-increment, PAGE_SIZE) / PAGE_SIZE;
-			current_sbrk -= needed_pages * PAGE_SIZE;
+			int needed_pages = ROUNDDOWN(-increment, PAGE_SIZE) / PAGE_SIZE;
+			current_sbrk += increment;
 
 			// Free frames and unmap them from the corresponding addresses
 			for (int i = old_sbrk; i > current_sbrk; i -= PAGE_SIZE) {
-				ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
-				free_frame(ptrNewFrame);
+//				ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
+//				free_frame(ptrNewFrame);
 				unmap_frame(ptr_page_directory, i);
 			}
 	    } else {
-	    	current_sbrk -= increment;
+	    	current_sbrk += increment;
 	    }
 
 	    // Set the update flag to true
