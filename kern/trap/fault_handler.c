@@ -88,7 +88,38 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		//cprintf("PLACEMENT=========================WS Size = %d\n", wsSize );
 		//TODO: [PROJECT'23.MS2 - #15] [3] PAGE FAULT HANDLER - Placement
 		// Write your code here, remove the panic and write your code
-		panic("page_fault_handler().PLACEMENT is not implemented yet...!!");
+//		panic("page_fault_handler().PLACEMENT is not implemented yet...!!");
+
+		curenv->page_WS_max_size = 20 ;
+		uint32 x = 0;
+		struct FrameInfo* frames_info = NULL;
+
+		if(allocate_frame(&frames_info) !=0){
+			sched_kill_env(curenv->env_id);
+		  }
+		map_frame(curenv->env_page_directory, frames_info, x, PERM_PRESENT | PERM_USER|PERM_BUFFERED);
+		if(pf_read_env_page(curenv,(void *)fault_va)& (~PERM_USER)){
+			sched_kill_env(curenv->env_id);
+		}
+		int EPF=pf_read_env_page(curenv,(void *) fault_va);
+		if(EPF== E_PAGE_NOT_EXIST_IN_PF){
+			if((fault_va < USTACKTOP && fault_va > USTACKBOTTOM) ||
+			   (fault_va > USER_HEAP_START && fault_va < USER_HEAP_MAX)){
+				struct WorkingSetElement *wse=NULL;
+				env_page_ws_list_create_element(curenv,fault_va);
+				LIST_INSERT_TAIL(&(curenv->page_WS_list),wse);
+
+			if(LIST_SIZE(&(curenv->page_WS_list))==curenv->page_WS_max_size){
+				curenv->page_last_WS_element=LIST_FIRST(&(curenv->page_WS_list));
+			}
+			else{
+				curenv->page_last_WS_element->prev_next_info.le_next=NULL;
+
+			}
+				curenv->page_WS_list.size  +=1;
+			}
+		}
+		sched_kill_env(curenv->env_id);
 
 		//refer to the project presentation and documentation for details
 	}

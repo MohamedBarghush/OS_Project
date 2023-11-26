@@ -108,7 +108,9 @@ struct Env {
 
 	/*2023*/
 	//TODO: [PROJECT'23.MS2 - #07] [2] USER HEAP - initialize of Env: add suitable code here
-
+	uint32 start;
+	uint32 hard_limit;
+	uint32 segment_break;
 	//==================================================================================
 
 	//================

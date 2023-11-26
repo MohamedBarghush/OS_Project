@@ -481,9 +481,9 @@ void sys_bypassPageFault(uint8 instrLength)
 void* sys_sbrk(int increment)
 {
 	//TODO: [PROJECT'23.MS2 - #08] [2] USER HEAP - Block Allocator - sys_sbrk() [Kernel Side]
-	//MS2: COMMENT THIS LINE BEFORE START CODING====
-//	return (void *)KERNEL_HEAP_MAX;
-	return (void*)-1 ;
+		//MS2: COMMENT THIS LINE BEFORE START CODING====
+	//	return (void *)KERNEL_HEAP_MAX;
+	//	return (void*)-1 ;
 	//====================================================
 
 	/*2023*/
@@ -500,13 +500,55 @@ void* sys_sbrk(int increment)
 	 * 	2) New segment break should be aligned on page-boundary to avoid "No Man's Land" problem
 	 * 	3) As in real OS, allocate pages lazily. While sbrk moves the segment break, pages are not allocated
 	 * 		until the user program actually tries to access data in its heap (i.e. will be allocated via the fault handler).
-	 * 	4) Allocating additional pages for a process� heap will fail if, for example, the free frames are exhausted
+	 * 	4) Allocating additional pages for a process heap will fail if, for example, the free frames are exhausted
 	 * 		or the break exceed the limit of the dynamic allocator. If sys_sbrk fails, the net effect should
 	 * 		be that sys_sbrk returns (void*) -1 and that the segment break and the process heap are unaffected.
 	 * 		You might have to undo any operations you have done so far in this case.
 	 */
 	struct Env* env = curenv; //the current running Environment to adjust its break limit
+	uint32 old_s=env->segment_break;
+	uint32 current_s=env->segment_break;
+	struct FrameInfo *ptrNewFrame = NULL;
+	uint32 *x = NULL;
+	bool is_updated = 0;
 
+
+	if(increment==0){
+		return (void *)old_s;
+	}
+	if(current_s+increment>=env->hard_limit){
+		panic("cannot allocate memory, exceeded hard limit");
+	}
+	if(increment>0){
+		int pages = ROUNDUP(increment, PAGE_SIZE) / PAGE_SIZE;
+		current_s += pages * PAGE_SIZE;
+
+		for (int i = old_s; i < current_s; i += PAGE_SIZE) {
+				allocate_frame(0);
+		}
+		is_updated = 1;
+	}
+	else if(increment<0){
+		int pages = ROUNDUP(-increment, PAGE_SIZE) / PAGE_SIZE;
+		current_s -= pages * -increment;
+
+		if(-increment==PAGE_SIZE){
+			for (int i = old_s; i > current_s; i -= PAGE_SIZE) {
+				ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
+				free_frame(ptrNewFrame);
+				unmap_frame(ptr_page_directory, i);
+					}
+		}
+		is_updated = 1;
+	}
+	if (is_updated) {
+		env->segment_break  = current_s;
+			return (void *)old_s;
+		} else {
+
+			panic("cannot allocate/deallocate process");
+			return NULL;
+		}
 
 }
 

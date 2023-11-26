@@ -259,8 +259,8 @@ void kfree(void* virtual_address)
 			//		cprintf("This is my segment_brk: %p\n", kernel_heap_start);
 			// Get Table position from the directory table
 			// Get the page table itself from the memory
-			uint32* page_table_address = NULL;
-			get_page_table(ptr_page_directory, va, &page_table_address);
+//			uint32* page_table_address = NULL;
+//			get_page_table(ptr_page_directory, va, &page_table_address);
 			//		cprintf("This is the page table pointer: %p\n", page_table_address);
 			// Iterate over every single entry in the page table and:
 			//		- Unmap the frame
@@ -277,10 +277,11 @@ void kfree(void* virtual_address)
 				//				cprintf("Exit NIGGA\n");
 				//				continue;
 				//			}
-				uint32* temp = NULL;
-				struct FrameInfo * ptr_new_frame = get_frame_info(ptr_page_directory, (uint32)kData[index].start+i, &temp);
+//				uint32* temp = NULL;
+//				struct FrameInfo * ptr_new_frame = get_frame_info(ptr_page_directory, (uint32)kData[index].start+i, &temp);
 				//			cprintf("This is my frame %p - %p\n", positive_va, ptr_new_frame->va);
 				//			free_frame(ptr_new_frame);
+//				if (kData[index])
 				unmap_frame(ptr_page_directory, (uint32)kData[index].start+i);
 			}
 			// Unmap the frame of the page table itself

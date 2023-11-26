@@ -375,32 +375,50 @@ void free_block(void *va)
 	block->is_free = 1;
 
 	// Coalesce consecutive free blocks
-	struct BlockMetaData* current = LIST_FIRST(&memBlockList);
-	while (current != NULL) {
-
-	    if (current->is_free == 1) {
-
-
-	        struct BlockMetaData* nextBlock = current->prev_next_info.le_next;
-	        while (nextBlock && nextBlock->is_free == 1)
-	           {
-
-						current->size += nextBlock->size;
-
-						nextBlock->size = 0;
-
-						nextBlock->is_free = 0;
-						// Adjust the next pointer before removing the current block
-						struct BlockMetaData* temp = nextBlock;
-
-						nextBlock = nextBlock->prev_next_info.le_next;
-
-						LIST_REMOVE(&memBlockList, temp);
-
-
-	        }
-	    }
-	    current = current->prev_next_info.le_next;
+//	struct BlockMetaData* current = LIST_FIRST(&memBlockList);
+//	while (current != NULL) {
+//
+//	    if (current->is_free == 1) {
+//
+//
+//	        struct BlockMetaData* nextBlock = current->prev_next_info.le_next;
+//	        while (nextBlock && nextBlock->is_free == 1)
+//	           {
+//
+//						current->size += nextBlock->size;
+//
+//						nextBlock->size = 0;
+//
+//						nextBlock->is_free = 0;
+//						// Adjust the next pointer before removing the current block
+//						struct BlockMetaData* temp = nextBlock;
+//
+//						nextBlock = nextBlock->prev_next_info.le_next;
+//
+//						LIST_REMOVE(&memBlockList, temp);
+//
+//
+//	        }
+//	    }
+//	    current = current->prev_next_info.le_next;
+//	}
+	struct BlockMetaData* intended_block = block->prev_next_info.le_next;
+	if (intended_block) {
+		if (intended_block->is_free == 1) {
+			block->size += intended_block->size;
+			intended_block->size = 0;
+			intended_block->is_free = 0;
+			LIST_REMOVE(&memBlockList, intended_block);
+		}
+	}
+	intended_block = block->prev_next_info.le_prev;
+	if (intended_block) {
+		if (intended_block->is_free == 1) {
+			intended_block->size += block->size;
+			block->size = 0;
+			block->is_free = 0;
+			LIST_REMOVE(&memBlockList, block);
+		}
 	}
 }
 
