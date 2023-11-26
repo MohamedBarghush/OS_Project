@@ -18,6 +18,7 @@ void _main(void)
 	//("STEP 0: checking Initial WS entries ...\n");
 	{
 		found = sys_check_WS_list(expectedInitialVAs, 14, 0, 1);
+		cprintf("this is my found: %d \n", found);
 		if (found != 1) panic("INITIAL PAGE WS entry checking failed! Review size of the WS..!!");
 
 		/*NO NEED FOR THIS IF REPL IS "LRU"*/

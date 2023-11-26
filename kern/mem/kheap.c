@@ -288,7 +288,7 @@ void kfree(void* virtual_address)
 		} else {
 			//		cprintf("Invalid space \n");
 			// The virtual address is invalid
-			panic("ENTER INVALID ADDRESS !!\n");
+			panic("ENTERED INVALID ADDRESS !!\n");
 		}
 
 

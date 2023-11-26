@@ -529,26 +529,29 @@ void* sys_sbrk(int increment)
 		is_updated = 1;
 	}
 	else if(increment<0){
-		int pages = ROUNDUP(-increment, PAGE_SIZE) / PAGE_SIZE;
-		current_s -= pages * -increment;
+		int pages = ROUNDDOWN(-increment, PAGE_SIZE) / PAGE_SIZE;
+		current_s += increment;
 
-		if(-increment==PAGE_SIZE){
+		if(-increment >= PAGE_SIZE){
 			for (int i = old_s; i > current_s; i -= PAGE_SIZE) {
 				ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
 				free_frame(ptrNewFrame);
 				unmap_frame(ptr_page_directory, i);
-					}
+			}
 		}
-		is_updated = 1;
+		is_updated = -1;
 	}
-	if (is_updated) {
+	if (is_updated == 1) {
 		env->segment_break  = current_s;
-			return (void *)old_s;
-		} else {
+		return (void *)old_s;
+	} else if (is_updated == -1) {
+		env->segment_break = current_s;
+		return (void *)current_s;
+	} else {
 
-			panic("cannot allocate/deallocate process");
-			return NULL;
-		}
+		panic("cannot allocate/deallocate process");
+		return NULL;
+	}
 
 }
 

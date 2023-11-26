@@ -157,7 +157,7 @@ void env_page_ws_print(struct Env *e)
 		}
 		for (; i < e->page_WS_max_size; ++i)
 		{
-			cprintf("EMPTY LOCATION");
+			cprintf("EMPTY LOCATION\n");
 		}
 	}
 }
