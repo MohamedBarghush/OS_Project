@@ -358,3 +358,11 @@ void sys_allocate_user_mem(uint32 virtual_address, uint32 size)
 //	return ;
 }
 
+uint32 sys_get_hard_limit () {
+	return syscall(SYS_get_hard_limit,0,0,0,0,0);
+}
+
+uint32 sys_perm_user (uint32 a1) {
+	return syscall(SYS_perm_user,a1,0,0,0,0);
+}
+

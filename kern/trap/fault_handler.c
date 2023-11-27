@@ -90,10 +90,13 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		// Write your code here, remove the panic and write your code
 //		panic("page_fault_handler().PLACEMENT is not implemented yet...!!");
 		struct FrameInfo* framer_info = NULL;
-		if (allocate_frame(&framer_info) != 0)
+		if (allocate_frame(&framer_info) != 0) {
+			cprintf("This is my killer\n");
 			sched_kill_env(curenv->env_id);
+		}
 
-		map_frame(curenv->env_page_directory, framer_info, fault_va, PERM_AVAILABLE | PERM_USER | PERM_WRITEABLE);
+		map_frame(curenv->env_page_directory, framer_info, fault_va, PERM_USER | PERM_WRITEABLE | PERM_PRESENT);
+		cprintf("frame mapped \n");
 
 		int EPF = pf_read_env_page(curenv, (void*)fault_va);
 		if (EPF == E_PAGE_NOT_EXIST_IN_PF) {
@@ -105,11 +108,16 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 				if (wsSize >= curenv->page_WS_max_size) {
 					curenv->page_last_WS_element = LIST_FIRST(&(curenv->page_WS_list));
 				}
+				return;
 			} else {
+				cprintf("didn't pass the test\n");
 				sched_kill_env(curenv->env_id);
 			}
 		} else {
+//			int perms = pt_get_page_permissions(curenv->env_page_directory, fault_va);
+//			cprintf("My permissions got to here %d \n", perms);
 			struct WorkingSetElement *newElement = env_page_ws_list_create_element(curenv, fault_va);
+//			pt_set_page_permissions(curenv->env_page_directory, fault_va, (PERM_MARKED | PERM_PRESENT | PERM_WRITEABLE), 0);
 			LIST_INSERT_TAIL(&curenv->page_WS_list, newElement);
 			wsSize  += 1;
 			if (wsSize >= curenv->page_WS_max_size) {

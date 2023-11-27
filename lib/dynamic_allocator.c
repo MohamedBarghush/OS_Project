@@ -143,6 +143,7 @@ void *alloc_block_FF(uint32 size)
 
 				//initializing the new metadata block
 				newBlock = (struct BlockMetaData *)((char *)myBlock + sizeOfMetaData() + size);
+//				newBlock = (struct BlockMetaData *)((uint32)newBlock | 0x00001000);
 				//setting its size
 				newBlock->size = myBlock->size - size - sizeOfMetaData();
 				//setting free status

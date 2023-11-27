@@ -64,7 +64,10 @@ void _main(void)
 		{
 			freeFrames = sys_calculate_free_frames() ;
 			usedDiskPages = sys_pf_calculate_allocated_pages() ;
+			cprintf("Time to malloc\n");
 			ptr_allocations[0] = malloc(2*Mega-kilo);
+			cprintf("I survived malloc \n");
+			cprintf("I got from malloc: %p the actual values is: %p \n", ptr_allocations[0], pagealloc_start);
 			if ((uint32) ptr_allocations[0] != (pagealloc_start)) panic("Wrong start address for the allocated space... ");
 			if ((freeFrames - sys_calculate_free_frames()) >= 512) panic("Wrong allocation: pages are allocated in memory while it's not supposed to!");
 			if ((sys_pf_calculate_allocated_pages() - usedDiskPages) != 0) panic("Extra or less pages are allocated in PageFile");

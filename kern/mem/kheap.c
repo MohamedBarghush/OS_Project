@@ -215,7 +215,7 @@ void* kmalloc(unsigned int size)
 	            if (all_err == 0) {
 	                // Map the page frame to the virtual address
 	            	ptr_info->va = addr;
-	                map_frame(ptr_page_directory, ptr_info, addr, PERM_WRITEABLE);
+	                map_frame(ptr_page_directory, ptr_info, addr, PERM_WRITEABLE | PERM_PRESENT);
 	            }
 	            addr += PAGE_SIZE;
 	        }

@@ -76,7 +76,10 @@ struct SharingVarInfo
 //2020
 LIST_HEAD(WS_List, WorkingSetElement);		// Declares 'struct WS_list'
 //======================================================================
-
+struct U_init {
+	uint32 *va;
+	uint32 size;
+};
 struct Env {
 	//================
 	/*MAIN INFO...*/
@@ -88,7 +91,6 @@ struct Env {
 	unsigned env_status;			// Status of the environment
 	int priority;					// Current priority
 	char prog_name[PROGNAMELEN];	// Program name (to print it via USER.cprintf in multitasking)
-
 	//================
 	/*ADDRESS SPACE*/
 	//================

@@ -120,12 +120,33 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	/*=============================================================================*/
 	//TODO: [PROJECT'23.MS2 - #10] [2] USER HEAP - allocate_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */
-	inctst();
-	return;
+	//inctst();
+	//return;
 	/*=============================================================================*/
+	// Check if a page table exists in the environment if it doesn't exist just create one and map it with a directory
+	// Check if the virtual address is referenced in the page table
+//	uint32 page_exists = pf_read_env_page(e,virtual_address);
+//	if (page_exists == E_PAGE_NOT_EXIST_IN_PF) {
+//		uint32 myPage = create_page_table(e->env_page_directory, virtual_address);
+//		if (pf_add_empty_env_page(e, myPage, 1) == 0) {
+//			pt_get_page_permissions(e->env_page_directory, myPage);
+//		}
+//	}
 
+	int numOfPages=size/PAGE_SIZE;
+	uint32* page_dir = e->env_page_directory;
+	uint32* ptr_page_table = NULL;
+//	get_page_table(page_dir, virtual_address, &ptr_page_table);
+	if(get_page_table(page_dir, virtual_address, &ptr_page_table) == TABLE_NOT_EXIST) {
+		create_page_table(page_dir, virtual_address);
+
+	}
+	for(int i = 0; i < numOfPages; i++) {
+		pt_set_page_permissions(page_dir, virtual_address, (PERM_MARKED|PERM_PRESENT|PERM_USER|PERM_WRITEABLE),0);
+		virtual_address += PAGE_SIZE;
+	}
 	// Write your code here, remove the panic and write your code
-	panic("allocate_user_mem() is not implemented yet...!!");
+//	panic("allocate_user_mem() is not implemented yet...!!");
 }
 
 //=====================================
@@ -136,12 +157,18 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	/*==========================================================================*/
 	//TODO: [PROJECT'23.MS2 - #12] [2] USER HEAP - free_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */
-	inctst();
-	return;
+//	inctst();
+//	return;
 	/*==========================================================================*/
 
+	// check if a page table exists
+
+
+	// 		if one doesn't exist, simply create one
+	// if the entry with the va is marked, just do nothing, if it isn't, then mark it
+
 	// Write your code here, remove the panic and write your code
-	panic("free_user_mem() is not implemented yet...!!");
+//	panic("free_user_mem() is not implemented yet...!!");
 
 	//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
 

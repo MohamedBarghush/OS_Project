@@ -29,7 +29,31 @@ void* sbrk(int increment)
 {
 	return (void*) sys_sbrk(increment);
 }
+struct U_init u_init [NUM_OF_UHEAP_PAGES];
+uint32* find_consecutive_user_pages(uint32 num_pages) {
+	uint32 start_address = sys_get_hard_limit()+PAGE_SIZE;
+	uint32 npages = num_pages;
+	uint32 *ptr_page_table = NULL;
+	uint32 permission;
 
+	while (start_address < USER_HEAP_MAX) {
+		if (npages == 0) {
+			return(void*) start_address - (num_pages * PAGE_SIZE);
+		}
+		permission = sys_perm_user(start_address);
+		if ((permission & PERM_MARKED) | (permission * PERM_PRESENT)) {
+			npages = num_pages;
+		} else {
+			npages--;
+		}
+		start_address += PAGE_SIZE;
+	}
+	if (npages == 0) {
+		return (void*) start_address - (num_pages * PAGE_SIZE);
+	} else {
+		return NULL;
+	}
+}
 //=================================
 // [2] ALLOCATE SPACE IN USER HEAP:
 //=================================
@@ -42,12 +66,96 @@ void* malloc(uint32 size)
 	//==============================================================
 	//TODO: [PROJECT'23.MS2 - #09] [2] USER HEAP - malloc() [User Side]
 	// Write your code here, remove the panic and write your code
-	panic("malloc() is not implemented yet...!!");
-	return NULL;
-	//Use sys_isUHeapPlacementStrategyFIRSTFIT() and	sys_isUHeapPlacementStrategyBESTFIT()
+	//panic("malloc() is not implemented yet...!!");
+	//return NULL;
+	//Use sys_isUHeapPlacementStrategyFIRSTFIT() and sys_isUHeapPlacementStrategyBESTFIT()
 	//to check the current strategy
 
+	// Check if the User heap placement strategy is FIRSTFIT
+	if (sys_isUHeapPlacementStrategyFIRSTFIT() == 0) {
+		return NULL;  // Return NULL if not using FIRSTFIT strategy
+	}
+
+		//start of user page allocator
+	//	uint32 start = 0;
+	//	uint32 sizeOfBlockAlloc = SYS_Get_Hard_Limit - USER_HEAP_START;
+
+	//	if (size > SYS_Get_Hard_Limit - USER_HEAP_START) {
+	//		return NULL;
+	//	}
+
+	//	struct Env * e = NULL;
+	//	LIST_FOREACH(envs)
+
+
+	//	// Check if the requested size exceeds the available space in the User heap
+	//	if (size > sizeOfBlockAlloc) {
+	//		return NULL;  // Return NULL if insufficient space in the User heap
+	//	}
+
+		// Check if the requested size is within the range that can be handled by the FIRSTFIT strategy
+	if (size <= DYN_ALLOC_MAX_BLOCK_SIZE) {
+		// If the size is within the range, allocate a block using the FIRSTFIT strategy
+		void* block = alloc_block_FF(size);
+
+		if (block != NULL) {
+			return block;  // Return the allocated block if successful
+		}
+	}
+	else {
+
+		uint32 num_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE;
+		uint32 total_size = num_pages * PAGE_SIZE;
+		cprintf("this is my num of pages %d \n", num_pages);
+		cprintf("this is my total size %d \n", total_size);
+		cprintf("this is my start %p \n", sys_get_hard_limit());
+		cprintf("this is my end %p \n", USER_HEAP_MAX);
+		cprintf("this is where I finish %p \n", sys_get_hard_limit() + (PAGE_SIZE * num_pages));
+
+		int count = 0;
+		int index = 0;
+
+		// Assuming SYS_Get_Hard_Limit is a variable or function that returns the hard limit of the system
+		uint32 addr = USER_HEAP_START + DYN_ALLOC_MAX_SIZE + sys_get_hard_limit() + PAGE_SIZE;
+
+		for (int i = 0; i < NUM_OF_UHEAP_PAGES; i++) {
+			if (count == num_pages) {
+				index = i - num_pages;  // Adjust index to the starting index of the contiguous block
+				break;  // Break the loop if enough space is found
+			}
+			if (u_init[i].va == (uint32*)0) {
+//				cprintf("\n\nfound one\n\n");
+				count++;
+			}
+
+			addr += PAGE_SIZE;
+		}
+//		cprintf("finished executing\n");
+
+		// Check if enough space is found
+		if (count < num_pages) {
+			// Handle insufficient space error
+			return NULL;
+		}
+
+		u_init[index].va = (uint32*) (addr - (PAGE_SIZE * num_pages));
+		u_init[index].size = count;
+		cprintf("This is my initial stuff %p, this is my index: %d and this is my size: %d \n", u_init[index].va, index, u_init[index].size);
+		uint32 temp = (uint32)u_init[index].va;
+		uint32 perms = sys_perm_user(temp);
+		cprintf("Thsese are ny permissions %p \n", perms);
+		if ((perms & PERM_MARKED)) {
+			cprintf("The page already exists");
+			return (void*)u_init[index].va;
+		}
+		sys_allocate_user_mem((uint32) u_init[index].va, total_size);
+		return (void*) u_init[index].va;
+
+	}
+	return NULL;
+
 }
+
 
 //=================================
 // [3] FREE SPACE FROM USER HEAP:

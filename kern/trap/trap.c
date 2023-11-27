@@ -372,6 +372,7 @@ void fault_handler(struct Trapframe *tf)
 	}
 	else
 	{
+//		cprintf("These are the permisssions %p \n", (uint32)perms);
 		if (userTrap)
 		{
 			/*============================================================================================*/
@@ -381,12 +382,29 @@ void fault_handler(struct Trapframe *tf)
 
 			int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
 			bool inKernel = (fault_va >= KERNEL_BASE);
-			bool inUserSpace = (!(perms&PERM_USER) && (perms & PERM_PRESENT));
-			bool inUserHeap = ((fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX) && !(perms & PERM_AVAILABLE));
-
+			bool notAUserAndPresent = (!(perms&PERM_USER) && (perms&PERM_PRESENT));
+			bool inUserHeapAndNotAvailable = ((fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX) && (perms & PERM_MARKED));
 			bool permsR=(!(perms & PERM_WRITEABLE) && (perms & PERM_PRESENT));
-			if (inKernel || inUserSpace || inUserHeap || permsR) {
+
+			if (notAUserAndPresent) {
+				cprintf("Not a user and present \n");
 				sched_kill_env(faulted_env->env_id);
+				return;
+			}
+			if (inKernel) {
+				cprintf(" In KERNEL \n");
+				sched_kill_env(faulted_env->env_id);
+				return;
+			}
+			if (inUserHeapAndNotAvailable) {
+				cprintf(" In the user heap which is from %p and %p and not marked and my actual address is: %p  \n", USER_HEAP_START, USER_HEAP_MAX, fault_va);
+				sched_kill_env(faulted_env->env_id);
+				return;
+			}
+			if (permsR) {
+				cprintf(" Not the right permissions \n");
+				sched_kill_env(faulted_env->env_id);
+				return;
 			}
 
 			/*============================================================================================*/

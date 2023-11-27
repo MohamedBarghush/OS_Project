@@ -380,6 +380,21 @@ static int32 sys_getenvindex(void)
 	return (curenv - envs) ;
 }
 
+uint32 sys_get_hard_limit()
+{
+	return curenv->hard_limit;
+}
+
+int sys_perm_user (uint32 va) {
+//	if (pt_get_page_permissions(curenv->env_page_directory, va) == TABLE_NOT_EXIST) {
+//		void* var2 = create_page_table(curenv->env_page_directory, va);
+//		cprintf("This is my stuff: %p \n", var2);
+//	}
+	int var = pt_get_page_permissions(curenv->env_page_directory, va);
+//	cprintf("This is the permission %d \n", var);
+	return var;
+}
+
 //2017
 static int32 sys_getparentenvid(void)
 {
@@ -507,7 +522,7 @@ void* sys_sbrk(int increment)
 	 */
 	struct Env* env = curenv; //the current running Environment to adjust its break limit
 	uint32 old_s=env->segment_break;
-	uint32 current_s=env->segment_break;
+	uint32 new_s=env->segment_break;
 	struct FrameInfo *ptrNewFrame = NULL;
 	uint32 *x = NULL;
 	bool is_updated = 0;
@@ -516,37 +531,41 @@ void* sys_sbrk(int increment)
 	if(increment==0){
 		return (void *)old_s;
 	}
-	if(current_s+increment>=env->hard_limit){
+	if(new_s+increment>=env->hard_limit){
 		panic("cannot allocate memory, exceeded hard limit");
 	}
 	if(increment>0){
 		int pages = ROUNDUP(increment, PAGE_SIZE) / PAGE_SIZE;
-		current_s += pages * PAGE_SIZE;
+		new_s += pages * PAGE_SIZE;
 
-		for (int i = old_s; i < current_s; i += PAGE_SIZE) {
-				allocate_frame(0);
-		}
+//		uint32 perms = pt_get_page_permissions(env->env_page_directory, new_s);
+//		cprintf("These are my permissions %d \n", perms);
+//		for (int i = old_s; i < new_s; i += PAGE_SIZE) {
+//				new_s = (new_s | 0x00000203);
+//		}
 		is_updated = 1;
 	}
 	else if(increment<0){
 		int pages = ROUNDDOWN(-increment, PAGE_SIZE) / PAGE_SIZE;
-		current_s += increment;
+		new_s += increment;
 
-		if(-increment >= PAGE_SIZE){
-			for (int i = old_s; i > current_s; i -= PAGE_SIZE) {
-				ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
-				free_frame(ptrNewFrame);
-				unmap_frame(ptr_page_directory, i);
-			}
-		}
+//		if(-increment >= PAGE_SIZE){
+//			for (int i = old_s; i > current_s; i -= PAGE_SIZE) {
+//				ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
+//				free_frame(ptrNewFrame);
+//				unmap_frame(ptr_page_directory, i);
+//			}
+//		}
 		is_updated = -1;
 	}
 	if (is_updated == 1) {
-		env->segment_break  = current_s;
+		env->segment_break  = new_s;
+		cprintf("This is my old brk: %p \n", old_s);
+		cprintf("This is my new brk: %p \n", new_s);
 		return (void *)old_s;
 	} else if (is_updated == -1) {
-		env->segment_break = current_s;
-		return (void *)current_s;
+		env->segment_break = new_s;
+		return (void *)new_s;
 	} else {
 
 		panic("cannot allocate/deallocate process");
@@ -767,7 +786,10 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 
 	case SYS_get_heap_strategy:
 		return sys_get_heap_strategy();
-
+	case SYS_get_hard_limit:
+		return sys_get_hard_limit();
+	case SYS_perm_user:
+		return sys_perm_user((uint32)a1);
 	case SYS_set_heap_strategy:
 		sys_set_uheap_strategy(a1);
 		return 0;

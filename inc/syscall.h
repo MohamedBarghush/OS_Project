@@ -56,7 +56,9 @@ enum
 	SYS_sbrk,
 	SYS_allocate_user_mem,
 	SYS_free_user_mem,
-
+	//MS2
+	SYS_get_hard_limit,
+	SYS_perm_user,
 	//=====================================================================
 	NSYSCALLS
 };
