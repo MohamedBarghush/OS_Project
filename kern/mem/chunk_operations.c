@@ -132,19 +132,18 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 //			pt_get_page_permissions(e->env_page_directory, myPage);
 //		}
 //	}
-
-	int numOfPages=size/PAGE_SIZE;
+//	cprintf("This is my dir \n");
+	int numOfPages=ROUNDUP(size,PAGE_SIZE)/PAGE_SIZE;
 	uint32* page_dir = e->env_page_directory;
 	uint32* ptr_page_table = NULL;
-//	get_page_table(page_dir, virtual_address, &ptr_page_table);
-	if(get_page_table(page_dir, virtual_address, &ptr_page_table) == TABLE_NOT_EXIST) {
-		create_page_table(page_dir, virtual_address);
-
-	}
 	for(int i = 0; i < numOfPages; i++) {
-		pt_set_page_permissions(page_dir, virtual_address, (PERM_MARKED|PERM_PRESENT|PERM_USER|PERM_WRITEABLE),0);
+		if(get_page_table(page_dir, virtual_address, &ptr_page_table) == TABLE_NOT_EXIST) {
+			create_page_table(page_dir, virtual_address);
+		}
+		pt_set_page_permissions(page_dir, virtual_address, (PERM_MARKED|PERM_WRITEABLE),0);
 		virtual_address += PAGE_SIZE;
 	}
+//	}
 	// Write your code here, remove the panic and write your code
 //	panic("allocate_user_mem() is not implemented yet...!!");
 }

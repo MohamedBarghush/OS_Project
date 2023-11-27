@@ -538,24 +538,20 @@ void* sys_sbrk(int increment)
 		int pages = ROUNDUP(increment, PAGE_SIZE) / PAGE_SIZE;
 		new_s += pages * PAGE_SIZE;
 
-//		uint32 perms = pt_get_page_permissions(env->env_page_directory, new_s);
+		uint32 perms = pt_get_page_permissions(env->env_page_directory, new_s);
 //		cprintf("These are my permissions %d \n", perms);
-//		for (int i = old_s; i < new_s; i += PAGE_SIZE) {
-//				new_s = (new_s | 0x00000203);
-//		}
+		for (int i = old_s; i < new_s; i += PAGE_SIZE) {
+			uint32* ptr_page_table = NULL;
+			if(get_page_table(env->env_page_directory, i, &ptr_page_table) == TABLE_NOT_EXIST) {
+				create_page_table(env->env_page_directory, i);
+			}
+			pt_set_page_permissions(env->env_page_directory, i, (PERM_MARKED|PERM_WRITEABLE),0);
+		}
 		is_updated = 1;
 	}
 	else if(increment<0){
 		int pages = ROUNDDOWN(-increment, PAGE_SIZE) / PAGE_SIZE;
 		new_s += increment;
-
-//		if(-increment >= PAGE_SIZE){
-//			for (int i = old_s; i > current_s; i -= PAGE_SIZE) {
-//				ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
-//				free_frame(ptrNewFrame);
-//				unmap_frame(ptr_page_directory, i);
-//			}
-//		}
 		is_updated = -1;
 	}
 	if (is_updated == 1) {
@@ -575,8 +571,9 @@ void* sys_sbrk(int increment)
 }
 
 int ErrorDetection (uint32 a1, uint32 a2) { // el function bta3tna 3lshan ntshek 3la el errors
-	if (a1 == 0 || a2 == 0 || a1 >= USER_LIMIT || a1+a2 >= USER_LIMIT || a2 > KERNEL_STACK_SIZE) {
+	if (a1 <= 0 || a2 <= 0 || a1 >= USER_LIMIT || a1+a2 >= USER_LIMIT) {
 		// condition 8lt = kill
+		cprintf("Hello world\n");
 		sched_kill_env(curenv->env_id);
 		return -E_INVAL;  // inc/error.h -3 byrg3 error
 	}

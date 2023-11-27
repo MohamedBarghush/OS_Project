@@ -381,16 +381,16 @@ void fault_handler(struct Trapframe *tf)
 			//your code is here
 
 			int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
-			bool inKernel = (fault_va >= KERNEL_BASE);
-			bool notAUserAndPresent = (!(perms&PERM_USER) && (perms&PERM_PRESENT));
-			bool inUserHeapAndNotAvailable = ((fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX) && (perms & PERM_MARKED));
+			bool inKernel = (fault_va >= USER_LIMIT);
+//			bool notAUserAndPresent = (!(perms&PERM_USER) && (perms&PERM_PRESENT));
+			bool inUserHeapAndNotAvailable = ((fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX) && !(perms & PERM_MARKED));
 			bool permsR=(!(perms & PERM_WRITEABLE) && (perms & PERM_PRESENT));
 
-			if (notAUserAndPresent) {
-				cprintf("Not a user and present \n");
-				sched_kill_env(faulted_env->env_id);
-				return;
-			}
+//			if (notAUserAndPresent) {
+//				cprintf("Not a user and present \n");
+//				sched_kill_env(faulted_env->env_id);
+//				return;
+//			}
 			if (inKernel) {
 				cprintf(" In KERNEL \n");
 				sched_kill_env(faulted_env->env_id);
