@@ -30,30 +30,7 @@ void* sbrk(int increment)
 	return (void*) sys_sbrk(increment);
 }
 struct U_init u_init [NUM_OF_UHEAP_PAGES];
-uint32* find_consecutive_user_pages(uint32 num_pages) {
-	uint32 start_address = sys_get_hard_limit()+PAGE_SIZE;
-	uint32 npages = num_pages;
-	uint32 *ptr_page_table = NULL;
-	uint32 permission;
-
-	while (start_address < USER_HEAP_MAX) {
-		if (npages == 0) {
-			return(void*) start_address - (num_pages * PAGE_SIZE);
-		}
-		permission = sys_perm_user(start_address);
-		if ((permission & PERM_MARKED) | (permission * PERM_PRESENT)) {
-			npages = num_pages;
-		} else {
-			npages--;
-		}
-		start_address += PAGE_SIZE;
-	}
-	if (npages == 0) {
-		return (void*) start_address - (num_pages * PAGE_SIZE);
-	} else {
-		return NULL;
-	}
-}
+int allocated_count;
 //=================================
 // [2] ALLOCATE SPACE IN USER HEAP:
 //=================================
@@ -78,7 +55,7 @@ void* malloc(uint32 size)
 
 		//start of user page allocator
 	//	uint32 start = 0;
-	//	uint32 sizeOfBlockAlloc = SYS_Get_Hard_Limit - USER_HEAP_START;
+//		uint32 sizeOfBlockAlloc = sys_get_hard_limit() - USER_HEAP_START;
 
 	//	if (size > SYS_Get_Hard_Limit - USER_HEAP_START) {
 	//		return NULL;
@@ -89,9 +66,9 @@ void* malloc(uint32 size)
 
 
 	//	// Check if the requested size exceeds the available space in the User heap
-	//	if (size > sizeOfBlockAlloc) {
-	//		return NULL;  // Return NULL if insufficient space in the User heap
-	//	}
+//	if (size > sizeOfBlockAlloc) {
+//		return NULL;  // Return NULL if insufficient space in the User heap
+//	}
 
 		// Check if the requested size is within the range that can be handled by the FIRSTFIT strategy
 	if (size <= DYN_ALLOC_MAX_BLOCK_SIZE) {
@@ -118,8 +95,8 @@ void* malloc(uint32 size)
 
 		// Assuming SYS_Get_Hard_Limit is a variable or function that returns the hard limit of the system
 		uint32 addr = sys_get_hard_limit() + PAGE_SIZE;
-
-		for (int i = 0; i < NUM_OF_UHEAP_PAGES; i++) {
+		int blockPages = ((sys_get_hard_limit()+PAGE_SIZE-USER_HEAP_START)/PAGE_SIZE);
+		for (int i = 0; i < NUM_OF_UHEAP_PAGES-blockPages; i++) {
 			if (u_init[i].va == (uint32*)NULL) {
 				count++;
 			} else {
@@ -139,10 +116,11 @@ void* malloc(uint32 size)
 			// Handle insufficient space error
 			return NULL;
 		}
-		cprintf ("this is my index %d \n", index);
+//		cprintf ("this is my index %d \n", index);
 		u_init[index].va = (uint32*) (addr + (index*PAGE_SIZE));
 		u_init[index].size = count;
-		cprintf("This is my initial stuff %p, this is my index: %d and this is my size: %d \n", u_init[index].va, index, u_init[index].size);
+		allocated_count += count;
+//		cprintf("This is my initial stuff %p, this is my index: %d and this is my size: %d \n", u_init[index].va, index, u_init[index].size);
 		uint32 temp = (uint32)u_init[index].va;
 		sys_allocate_user_mem(temp, total_size);
 		return (void*) u_init[index].va;
@@ -158,9 +136,34 @@ void* malloc(uint32 size)
 //=================================
 void free(void* virtual_address)
 {
-	//TODO: [PROJECT'23.MS2 - #11] [2] USER HEAP - free() [User Side]
-	// Write your code here, remove the panic and write your code
-	panic("free() is not implemented yet...!!");
+	if ((uint32)virtual_address >= USER_HEAP_START && (uint32)virtual_address < (sys_get_hard_limit())) {
+		free_block(virtual_address);
+	}
+	else if ((uint32)virtual_address >= USER_HEAP_START && (uint32)virtual_address < USER_HEAP_MAX) {
+		int index = -1;
+		for (int i = 0; i < allocated_count; i++) {
+			if (u_init[i].va == (uint32*)virtual_address) {
+				index = i;
+				break;
+			}
+		}
+		if (index == -1) {
+			panic("Invalid address in free()");
+		}
+
+		uint32 size = u_init[index].size;
+		u_init[index].size = 0;
+		u_init[index].va = NULL;
+//		for (int i = index; i < index + size; i++) {
+//			u_init[i].va = (uint32*)NULL;
+//			u_init[i].size = 0;
+//			allocated_count--;
+//		}
+
+		sys_free_user_mem((uint32)virtual_address, size * PAGE_SIZE);
+	} else {
+		panic("Invalid address in free()");
+	}
 }
 
 

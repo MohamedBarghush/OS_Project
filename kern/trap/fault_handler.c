@@ -96,7 +96,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		}
 
 		map_frame(curenv->env_page_directory, framer_info, fault_va, PERM_USER | PERM_WRITEABLE | PERM_PRESENT);
-		cprintf("frame mapped \n");
+//		cprintf("frame mapped \n");
 
 		int EPF = pf_read_env_page(curenv, (void*)fault_va);
 		if (EPF == E_PAGE_NOT_EXIST_IN_PF) {

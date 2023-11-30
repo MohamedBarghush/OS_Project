@@ -170,6 +170,28 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 //	panic("free_user_mem() is not implemented yet...!!");
 
 	//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
+	/*==========================================================================*/
+		//TODO: [PROJECT'23.MS2 - #12] [2] USER HEAP - free_user_mem() [Kernel Side]
+		/*REMOVE THESE LINES BEFORE START CODING */
+		//inctst();
+		//return;
+		/*==========================================================================*/
+
+		// Write your code here, remove the panic and write your code
+		//panic("free_user_mem() is not implemented yet...!!");
+
+		//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
+
+	uint32 num_of_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE; // size is rounded at malloc
+	for (uint32 i=0 ; i<num_of_pages ; i++) {
+		// UnMark page to be available --> PERM_AVAILABLE = 1
+		if (pt_get_page_permissions(e->env_page_directory, virtual_address + (i*PAGE_SIZE)) & PERM_PRESENT)
+			unmap_frame(e->env_page_directory, virtual_address + (i*PAGE_SIZE));
+		pt_set_page_permissions(e->env_page_directory, virtual_address + (i*PAGE_SIZE), (PERM_BUFFERED), (PERM_MARKED|PERM_PRESENT));
+		pf_remove_env_page(e, virtual_address + (i*PAGE_SIZE));
+		// Free ONLY pages that are resident in the working set from the memory
+		env_page_ws_invalidate(e, virtual_address + (i*PAGE_SIZE));
+	}
 
 }
 

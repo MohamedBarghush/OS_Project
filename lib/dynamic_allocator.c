@@ -190,10 +190,10 @@ void *alloc_block_FF(uint32 size)
 					if ((void *)new_block == (void *)-1) {
 						return NULL;
 					}
-					new_block->is_free = 0;
+					new_block->is_free = 1;
 					new_block->size = ROUNDUP(size + sizeOfMetaData(), PAGE_SIZE);
 					LIST_INSERT_TAIL(&memBlockList, new_block);
-					free_block((void*)(new_block + 1));
+//					free_block((void*)(new_block + 1));
 					return alloc_block_FF(size);
 				}
 			}
@@ -205,10 +205,10 @@ void *alloc_block_FF(uint32 size)
 	if ((void *)new_block == (void *)-1) {
 		return NULL;
 	}
-	new_block->is_free = 0;
+	new_block->is_free = 1;
 	new_block->size = ROUNDUP(size + sizeOfMetaData(), PAGE_SIZE);
 	LIST_INSERT_TAIL(&memBlockList, new_block);
-	free_block((void*)(new_block + 1));
+//	free_block((void*)(new_block + 1));
 	return alloc_block_FF(size);
 
 

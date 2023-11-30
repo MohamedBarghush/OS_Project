@@ -348,9 +348,9 @@ int map_frame(uint32 *ptr_page_directory, struct FrameInfo *ptr_frame_info, uint
 #if USE_KHEAP
 		{
 			ptr_page_table = create_page_table(ptr_page_directory, (uint32)virtual_address);
-			cprintf("======>page table created using kheap for VA %x at dir = %x PT = %x\n", virtual_address, ptr_page_directory[PDX(virtual_address)], ptr_page_table);
+			//cprintf("======>page table created using kheap for VA %x at dir = %x PT = %x\n", virtual_address, ptr_page_directory[PDX(virtual_address)], ptr_page_table);
 			uint32* ptr_page_table2 =NULL;
-			cprintf("======> After the table created at %x\n\n", get_page_table(ptr_page_directory, virtual_address,&ptr_page_table2));
+			//cprintf("======> After the table created at %x\n\n", get_page_table(ptr_page_directory, virtual_address,&ptr_page_table2));
 		}
 #else
 		{
@@ -360,7 +360,7 @@ int map_frame(uint32 *ptr_page_directory, struct FrameInfo *ptr_frame_info, uint
 
 	}
 
-//	cprintf("NOW .. map add = %x ptr_page_table = %x PTX(virtual_address) = %d\n", virtual_address, ptr_page_table,PTX(virtual_address));
+	//cprintf("NOW .. map add = %x ptr_page_table = %x PTX(virtual_address) = %d\n", virtual_address, ptr_page_table,PTX(virtual_address));
 	uint32 page_table_entry = ptr_page_table[PTX(virtual_address)];
 
 	/*OLD WRONG SOLUTION
@@ -411,17 +411,19 @@ int map_frame(uint32 *ptr_page_directory, struct FrameInfo *ptr_frame_info, uint
 struct FrameInfo * get_frame_info(uint32 *ptr_page_directory, uint32 virtual_address, uint32 **ptr_page_table)
 {
 	// Fill this function in
-//	cprintf(".gfi .1\n %x, %x, %x, \n", ptr_page_directory, virtual_address, ptr_page_table);
-	uint32 ret = get_page_table(ptr_page_directory, virtual_address, ptr_page_table) ;
-//	cprintf(".gfi .15\n");
+	//cprintf(".gfi .1\n %x, %x, %x, \n", ptr_page_directory, virtual_address, ptr_page_table);
+	uint32 ret =  get_page_table(ptr_page_directory, virtual_address, ptr_page_table) ;
+	//cprintf(".gfi .15\n");
 	if((*ptr_page_table) != 0)
 	{
 		uint32 index_page_table = PTX(virtual_address);
-//		cprintf(".gfi .2\n");
+		//cprintf(".gfi .2\n");
 		uint32 page_table_entry = (*ptr_page_table)[index_page_table];
-		if(page_table_entry != 0)
+		/*2023 el7:)*///Make sure it has a frame number other than 0 (not just a marked page from the page allocator)
+		//if( page_table_entry != 0)
+		if( (page_table_entry & ~0xFFF) != 0)
 		{
-//			cprintf(".gfi .3\n");
+			//cprintf(".gfi .3\n");
 			return to_frame_info( EXTRACT_ADDRESS ( page_table_entry ) );
 		}
 		return 0;

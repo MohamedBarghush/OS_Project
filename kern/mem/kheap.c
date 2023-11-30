@@ -79,7 +79,7 @@ void* sbrk(int increment)
 	}
 
 	// Check if increasing the segment break would exceed the hard limit
-	if (current_sbrk + increment >= kinit.hard_limit) {
+	if (current_sbrk + increment > kinit.hard_limit) {
 	    panic("cannot allocate memory, exceeded hard limit");
 	}
 

@@ -531,15 +531,14 @@ void* sys_sbrk(int increment)
 	if(increment==0){
 		return (void *)old_s;
 	}
-	if(new_s+increment>=env->hard_limit){
-		panic("cannot allocate memory, exceeded hard limit");
+	if(new_s+increment>env->hard_limit){
+		return (void*)-1;
 	}
 	if(increment>0){
 		int pages = ROUNDUP(increment, PAGE_SIZE) / PAGE_SIZE;
 		new_s += pages * PAGE_SIZE;
 
 		uint32 perms = pt_get_page_permissions(env->env_page_directory, new_s);
-//		cprintf("These are my permissions %d \n", perms);
 		for (int i = old_s; i < new_s; i += PAGE_SIZE) {
 			uint32* ptr_page_table = NULL;
 			if(get_page_table(env->env_page_directory, i, &ptr_page_table) == TABLE_NOT_EXIST) {
@@ -556,16 +555,15 @@ void* sys_sbrk(int increment)
 	}
 	if (is_updated == 1) {
 		env->segment_break  = new_s;
-		cprintf("This is my old brk: %p \n", old_s);
-		cprintf("This is my new brk: %p \n", new_s);
+//		cprintf("This is my old brk: %p \n", old_s);
+//		cprintf("This is my new brk: %p \n", new_s);
 		return (void *)old_s;
 	} else if (is_updated == -1) {
 		env->segment_break = new_s;
 		return (void *)new_s;
 	} else {
 
-		panic("cannot allocate/deallocate process");
-		return NULL;
+		return (void*)-1;
 	}
 
 }
