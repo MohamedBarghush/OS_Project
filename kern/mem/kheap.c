@@ -49,6 +49,7 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 
 void* sbrk(int increment)
 {
+	//TODO: [PROJECT'23.MS2 - #02] [1] KERNEL HEAP - sbrk()
 	/* increment > 0: move the segment break of the kernel to increase the size of its heap,
 	 * 				you should allocate pages and map them into the kernel virtual address space as necessary,
 	 * 				and returns the address of the previous break (i.e. the beginning of newly mapped memory).
@@ -296,6 +297,8 @@ void kfree(void* virtual_address)
 
 unsigned int kheap_virtual_address(unsigned int physical_address)
 {
+
+	//TODO: [PROJECT'23.MS2 - #05] [1] KERNEL HEAP - kheap_virtual_address()
 	unsigned int offset = physical_address & 0xFFF;
 
 	// Get the FrameInfo structure corresponding to the physical address

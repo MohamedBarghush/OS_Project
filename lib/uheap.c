@@ -136,6 +136,8 @@ void* malloc(uint32 size)
 //=================================
 void free(void* virtual_address)
 {
+	//TODO: [PROJECT'23.MS2 - #11] [2] USER HEAP - free() [User Side]
+
 	if ((uint32)virtual_address >= USER_HEAP_START && (uint32)virtual_address < (sys_get_hard_limit())) {
 		free_block(virtual_address);
 	}
