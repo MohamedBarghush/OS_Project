@@ -15,6 +15,7 @@
 #if USE_KHEAP
 inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, uint32 virtual_address)
 {
+//	//TODO: [PROJECT'23.MS2 - #14] [3] PAGE FAULT HANDLER - Create a new working set element
 	// Calc size of the WorkingSetElement
 	 uint32 size = sizeof(struct WorkingSetElement);
 	 // Allocate memory for WorkingSetElement
@@ -32,7 +33,6 @@ inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, 
 }
 //inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, uint32 virtual_address)
 //{
-//	//TODO: [PROJECT'23.MS2 - #14] [3] PAGE FAULT HANDLER - Create a new working set element
 //	// Write your code here, remove the panic and write your code
 //    if( env_page_ws_get_size(e) < e->page_WS_max_size ){
 //    	struct WorkingSetElement *new_element=NULL;
@@ -50,6 +50,7 @@ inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, 
 //	    }
 //
 //}
+
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
@@ -63,6 +64,12 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 				struct WorkingSetElement* ptr_tmp_WS_element = LIST_FIRST(&(e->SecondList));
 				unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
 				LIST_REMOVE(&(e->ActiveList), ptr_WS_element);
+
+
+				// EDIT
+				kfree(ptr_WS_element);
+				// END EDIT
+
 				if(ptr_tmp_WS_element != NULL)
 				{
 					LIST_REMOVE(&(e->SecondList), ptr_tmp_WS_element);
@@ -85,6 +92,9 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 					LIST_REMOVE(&(e->SecondList), ptr_WS_element);
 
 					kfree(ptr_WS_element);
+					// EDIT
+					break;
+					// END EDIT
 				}
 			}
 		}

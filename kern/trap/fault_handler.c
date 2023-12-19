@@ -82,68 +82,176 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		int iWS =curenv->page_last_WS_index;
 		uint32 wsSize = env_page_ws_get_size(curenv);
 #endif
-
-	if(wsSize < (curenv->page_WS_max_size))
+	//cprintf("REPLACEMENT=========================WS Size = %d\n", wsSize );
+	//refer to the project presentation and documentation for details
+	if(isPageReplacmentAlgorithmFIFO())
 	{
-		//cprintf("PLACEMENT=========================WS Size = %d\n", wsSize );
-		//TODO: [PROJECT'23.MS2 - #15] [3] PAGE FAULT HANDLER - Placement
+		//TODO: [PROJECT'23.MS3 - #1] [1] PAGE FAULT HANDLER - FIFO Replacement
 		// Write your code here, remove the panic and write your code
-//		panic("page_fault_handler().PLACEMENT is not implemented yet...!!");
-		struct FrameInfo* framer_info = NULL;
-		if (allocate_frame(&framer_info) != 0) {
-			cprintf("This is my killer\n");
-			sched_kill_env(curenv->env_id);
-		}
+//		panic("page_fault_handler() FIFO Replacement is not implemented yet...!!");
+		if(wsSize < (curenv->page_WS_max_size))
+		{
+			//cprintf("PLACEMENT=========================WS Size = %d\n", wsSize );
+			//TODO: [PROJECT'23.MS2 - #15] [3] PAGE FAULT HANDLER - Placement
+			// Write your code here, remove the panic and write your code
+	//		panic("page_fault_handler().PLACEMENT is not implemented yet...!!");
+			cprintf("\n Started placing page \n");
+			struct FrameInfo* framer_info = NULL;
+//			placement(curenv, fault_va, &wsSize, framer_info);
+			if (allocate_frame(&framer_info) != 0) {
+				cprintf("This is my killer\n");
+				sched_kill_env(curenv->env_id);
+			}
 
-		map_frame(curenv->env_page_directory, framer_info, fault_va, PERM_USER | PERM_WRITEABLE | PERM_PRESENT);
-//		cprintf("frame mapped \n");
+			map_frame(curenv->env_page_directory, framer_info, fault_va, PERM_USER | PERM_WRITEABLE | PERM_PRESENT);
 
-		int EPF = pf_read_env_page(curenv, (void*)fault_va);
-		if (EPF == E_PAGE_NOT_EXIST_IN_PF) {
-			if ((fault_va < USTACKTOP && fault_va >= USTACKBOTTOM) || (fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX)) {
-				struct WorkingSetElement* wse = env_page_ws_list_create_element(curenv, fault_va);
-				LIST_INSERT_TAIL(&(curenv->page_WS_list), wse);
-				pf_read_env_page(curenv, (void*) fault_va);
-				wsSize  += 1;
+			int EPF = pf_read_env_page(curenv, (void*)fault_va);
+			if (EPF == E_PAGE_NOT_EXIST_IN_PF) {
+				if ((fault_va < USTACKTOP && fault_va >= USTACKBOTTOM) || (fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX)) {
+					struct WorkingSetElement* wse = env_page_ws_list_create_element(curenv, fault_va);
+					wse->virtual_address = fault_va;
+					LIST_INSERT_HEAD(&(curenv->page_WS_list), wse);
+					pf_read_env_page(curenv, (void*) fault_va);
+					cprintf("This is the last element's data BEFORE: Virtual Address: %p, Index: %d\n", curenv->page_last_WS_element, curenv->page_last_WS_index);
+					wsSize  += 1;
+					curenv->page_last_WS_index = (wsSize-1) % (curenv->page_WS_max_size-1); // (MS3 added, updated the last element index)
+					if (wsSize >= curenv->page_WS_max_size) {
+						curenv->page_last_WS_element = LIST_FIRST(&(curenv->page_WS_list));
+					}
+					cprintf("This is the last element's data AFTER: Virtual Address: %p, Index: %d\n", curenv->page_last_WS_element, curenv->page_last_WS_index);
+					cprintf("\n Finished placing page \n");
+					return;
+				} else {
+		//					cprintf("didn't pass the test\n");
+					sched_kill_env(curenv->env_id);
+				}
+			} else {
+				struct WorkingSetElement *newElement = env_page_ws_list_create_element(curenv, fault_va);
+				newElement->virtual_address = fault_va;
+				LIST_INSERT_HEAD(&curenv->page_WS_list, newElement);
+				cprintf("This is the last element's data BEFORE: Virtual Address: %p, Index: %d\n", curenv->page_last_WS_element, curenv->page_last_WS_index);
+				wsSize += 1;
+				curenv->page_last_WS_index = (wsSize-1) % (curenv->page_WS_max_size-1); // (MS3 added, updated the last element index)
 				if (wsSize >= curenv->page_WS_max_size) {
 					curenv->page_last_WS_element = LIST_FIRST(&(curenv->page_WS_list));
 				}
-				return;
-			} else {
-				cprintf("didn't pass the test\n");
-				sched_kill_env(curenv->env_id);
+				cprintf("This is the last element's data AFTER: Virtual Address: %p, Index: %d\n", curenv->page_last_WS_element, curenv->page_last_WS_index);
 			}
-		} else {
-//			int perms = pt_get_page_permissions(curenv->env_page_directory, fault_va);
-//			cprintf("My permissions got to here %d \n", perms);
-			struct WorkingSetElement *newElement = env_page_ws_list_create_element(curenv, fault_va);
-//			pt_set_page_permissions(curenv->env_page_directory, fault_va, (PERM_MARKED | PERM_PRESENT | PERM_WRITEABLE), 0);
-			LIST_INSERT_TAIL(&curenv->page_WS_list, newElement);
-			wsSize  += 1;
-			if (wsSize >= curenv->page_WS_max_size) {
-				curenv->page_last_WS_element = LIST_FIRST(&(curenv->page_WS_list));
-			}
+			cprintf("\n Finished placing page \n");
 		}
-		//refer to the project presentation and documentation for details
-	}
-	else
-	{
-		//cprintf("REPLACEMENT=========================WS Size = %d\n", wsSize );
-		//refer to the project presentation and documentation for details
-		if(isPageReplacmentAlgorithmFIFO())
+		else
 		{
+			// Replacement
 			//TODO: [PROJECT'23.MS3 - #1] [1] PAGE FAULT HANDLER - FIFO Replacement
 			// Write your code here, remove the panic and write your code
-			panic("page_fault_handler() FIFO Replacement is not implemented yet...!!");
-		}
-		if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
-		{
-			//TODO: [PROJECT'23.MS3 - #2] [1] PAGE FAULT HANDLER - LRU Replacement
-			// Write your code here, remove the panic and write your code
-			panic("page_fault_handler() LRU Replacement is not implemented yet...!!");
+			//panic("page_fault_handler() FIFO Replacement is not implemented yet...!!");
 
-			//TODO: [PROJECT'23.MS3 - BONUS] [1] PAGE FAULT HANDLER - O(1) implementation of LRU replacement
+			// Get the page permissions of the last working set element in the current environment
+			int tm = pt_get_page_permissions(curenv->env_page_directory, curenv->page_last_WS_element->virtual_address);
+
+			// Check if the page is modified
+			if (tm & PERM_MODIFIED)
+			{
+			    // If modified, obtain the page table and frame information
+			    uint32* pageTa = NULL;
+			    get_page_table(curenv->env_page_directory, curenv->page_last_WS_element->virtual_address, &pageTa);
+			    struct FrameInfo* frame_info_ptr = get_frame_info(curenv->env_page_directory, curenv->page_last_WS_element->virtual_address, &pageTa);
+
+			    // Update the page table and mark the page as not modified
+			    pf_update_env_page(curenv, curenv->page_last_WS_element->virtual_address, frame_info_ptr);
+			}
+
+			// Allocate a new frame for the faulting virtual address
+			struct FrameInfo* NF = NULL;
+			allocate_frame(&NF);
+
+			// Map the new frame to the faulting virtual address with specified permissions
+			map_frame(curenv->env_page_directory, NF, fault_va, PERM_PRESENT | PERM_WRITEABLE | PERM_USER);
+
+			// Read the contents of the page into memory
+			pf_read_env_page(curenv, (void*)fault_va);
+
+			// Create a new working set element for the faulting virtual address
+			struct WorkingSetElement* NewWS = env_page_ws_list_create_element(curenv, fault_va);
+			NewWS->virtual_address = fault_va;
+
+			// Insert the new working set element after the last one in the list
+			LIST_INSERT_AFTER(&(curenv->page_WS_list), curenv->page_last_WS_element, NewWS);
+
+			// Unmap the frame associated with the previous last working set element
+			unmap_frame(curenv->env_page_directory, curenv->page_last_WS_element->virtual_address);
+
+			// Remove the previous last working set element from the list
+			LIST_REMOVE(&curenv->page_WS_list, curenv->page_last_WS_element);
+
+			// Update the last working set element to the new one
+			curenv->page_last_WS_element = NewWS;
+
+			// Adjust the last working set element based on its position in the list
+			if (curenv->page_last_WS_element->prev_next_info.le_next == NULL)
+			{
+			    curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
+			}
+			else
+			{
+			    curenv->page_last_WS_element = NewWS->prev_next_info.le_next;
+			}
+
+
+
 		}
+	}
+	if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
+	{
+		//TODO: [PROJECT'23.MS3 - #2] [1] PAGE FAULT HANDLER - LRU Replacement
+		// Write your code here, remove the panic and write your code
+//		panic("page_fault_handler() LRU Replacement is not implemented yet...!!");
+		if (curenv->ActiveList.size + curenv->SecondList.size < curenv->ActiveListSize + curenv->SecondListSize) {
+
+		} else {
+
+		}
+
+		//TODO: [PROJECT'23.MS3 - BONUS] [1] PAGE FAULT HANDLER - O(1) implementation of LRU replacement
+	}
+}
+
+void placement (struct Env * curenv, uint32 fault_va, uint32* wsSize, struct FrameInfo* framer_info) {
+	if (allocate_frame(&framer_info) != 0) {
+		cprintf("This is my killer\n");
+		sched_kill_env(curenv->env_id);
+	}
+
+	map_frame(curenv->env_page_directory, framer_info, fault_va, PERM_USER | PERM_WRITEABLE | PERM_PRESENT);
+
+	int EPF = pf_read_env_page(curenv, (void*)fault_va);
+	if (EPF == E_PAGE_NOT_EXIST_IN_PF) {
+		if ((fault_va < USTACKTOP && fault_va >= USTACKBOTTOM) || (fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX)) {
+			struct WorkingSetElement* wse = env_page_ws_list_create_element(curenv, fault_va);
+			LIST_INSERT_TAIL(&(curenv->page_WS_list), wse);
+			pf_read_env_page(curenv, (void*) fault_va);
+			cprintf("This is the last element's data BEFORE: Virtual Address: %p, Index: %d", curenv->page_last_WS_element, curenv->page_last_WS_index);
+			*wsSize  += 1;
+			curenv->page_last_WS_index = (*wsSize-1) % (curenv->page_WS_max_size-1); // (MS3 added, updated the last element index)
+			if (*wsSize >= curenv->page_WS_max_size) {
+				curenv->page_last_WS_element = LIST_FIRST(&(curenv->page_WS_list));
+			}
+			cprintf("This is the last element's data AFTER: Virtual Address: %p, Index: %d", curenv->page_last_WS_element, curenv->page_last_WS_index);
+			return;
+		} else {
+//					cprintf("didn't pass the test\n");
+			sched_kill_env(curenv->env_id);
+		}
+	} else {
+		struct WorkingSetElement *newElement = env_page_ws_list_create_element(curenv, fault_va);
+		LIST_INSERT_TAIL(&curenv->page_WS_list, newElement);
+		cprintf("This is the last element's data BEFORE: Virtual Address: %p, Index: %d", curenv->page_last_WS_element, curenv->page_last_WS_index);
+		*wsSize += 1;
+		curenv->page_last_WS_index = (*wsSize-1) % (curenv->page_WS_max_size-1); // (MS3 added, updated the last element index)
+		if (*wsSize >= curenv->page_WS_max_size) {
+			curenv->page_last_WS_element = LIST_FIRST(&(curenv->page_WS_list));
+		}
+		cprintf("This is the last element's data AFTER: Virtual Address: %p, Index: %d", curenv->page_last_WS_element, curenv->page_last_WS_index);
 	}
 }
 
