@@ -121,7 +121,7 @@ void sched_init_RR(uint8 quantum)
 #if USE_KHEAP
 	sched_delete_ready_queues();
 	env_ready_queues = kmalloc(sizeof(struct Env_Queue));
-	quantums = kmalloc(num_of_ready_queues * sizeof(uint8)) ;
+	quantums = kmalloc(num_of_ready_queues * sizeof(uint8));
 #endif
 	quantums[0] = quantum;
 	kclock_set_quantum(quantums[0]);
@@ -165,7 +165,23 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 	//TODO: [PROJECT'23.MS3 - #4] [2] BSD SCHEDULER - sched_init_BSD
 	//Your code is here
 	//Comment the following line
-	panic("Not implemented yet");
+	//panic("Not implemented yet");
+
+	//clearing ready queues
+	sched_delete_ready_queues();
+
+	env_ready_queues = kmalloc(numOfLevels * sizeof(struct Env_Queue));
+
+	//updating number of ready queues after allocation
+	num_of_ready_queues = numOfLevels;
+	//allocating memory for quantums according to number of quantums
+	quantums = kmalloc(sizeof(uint8));
+	quantums[0] = quantum;
+	kclock_set_quantum(quantums[0]);
+	for(int i = 0 ; i < numOfLevels; i++)
+	{
+		init_queue(&(env_ready_queues[i]));
+	}
 
 	//=========================================
 	//DON'T CHANGE THESE LINES=================

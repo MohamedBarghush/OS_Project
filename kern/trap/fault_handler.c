@@ -163,7 +163,9 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 
 			// Allocate a new frame for the faulting virtual address
 			struct FrameInfo* NF = NULL;
-			allocate_frame(&NF);
+			if(allocate_frame(&NF) != 0) {
+				sched_kill_env(curenv->env_id);
+			}
 
 			// Map the new frame to the faulting virtual address with specified permissions
 			map_frame(curenv->env_page_directory, NF, fault_va, PERM_PRESENT | PERM_WRITEABLE | PERM_USER);
@@ -225,6 +227,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 				struct FrameInfo* framer_info = NULL;
 				if (allocate_frame(&framer_info) != 0) {
 					//cprintf("Failed to allocate frame\n");
+					sched_kill_env(curenv->env_id);
 				}
 
 				map_frame(curenv->env_page_directory, framer_info, fault_va, PERM_USER | PERM_WRITEABLE | PERM_PRESENT);
