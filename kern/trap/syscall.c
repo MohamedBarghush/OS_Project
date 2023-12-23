@@ -531,36 +531,50 @@ void* sys_sbrk(int increment)
 	if(increment==0){
 		return (void *)old_s;
 	}
-	if(new_s+increment>env->hard_limit){
+	if(ROUNDUP(new_s+increment, PAGE_SIZE) > env->hard_limit){
 		return (void*)-1;
 	}
 	if(increment>0){
 		int pages = ROUNDUP(increment, PAGE_SIZE) / PAGE_SIZE;
-		new_s += pages * PAGE_SIZE;
+		new_s = ROUNDUP(new_s + increment, PAGE_SIZE);
 
 		uint32 perms = pt_get_page_permissions(env->env_page_directory, new_s);
-		for (int i = old_s; i < new_s; i += PAGE_SIZE) {
+		for (int i = 0; i < pages; i++) {
 			uint32* ptr_page_table = NULL;
-			if(get_page_table(env->env_page_directory, i, &ptr_page_table) == TABLE_NOT_EXIST) {
-				create_page_table(env->env_page_directory, i);
+			if(get_page_table(env->env_page_directory, old_s, &ptr_page_table) == TABLE_NOT_EXIST) {
+				create_page_table(env->env_page_directory, old_s);
 			}
-			pt_set_page_permissions(env->env_page_directory, i, (PERM_MARKED|PERM_WRITEABLE),0);
+			pt_set_page_permissions(env->env_page_directory, old_s, (PERM_MARKED|PERM_WRITEABLE),0);
 		}
 		is_updated = 1;
 	}
 	else if(increment<0){
-		int pages = ROUNDDOWN(-increment, PAGE_SIZE) / PAGE_SIZE;
-		new_s += increment;
+		increment *= -1;
+		if (old_s - increment >= env->start)
+		{
+			uint32* ptr_table;
+			struct FrameInfo* ptr_info = get_frame_info(env->env_page_directory, old_s, &ptr_table);
+			if(ptr_info != 0 && (ROUNDDOWN(old_s - increment, PAGE_SIZE) < ROUNDDOWN(old_s, PAGE_SIZE)))
+			{
+				for (int i = 0; i < ROUNDUP(increment, PAGE_SIZE) / PAGE_SIZE; i++)
+				{
+					pt_set_page_permissions(env->env_page_directory, new_s, 0, PERM_PRESENT | PERM_MARKED);
+					unmap_frame(env->env_page_directory, new_s);
+					env_page_ws_invalidate(env, new_s);
+					new_s -= PAGE_SIZE;
+				}
+			}
+		}
 		is_updated = -1;
 	}
 	if (is_updated == 1) {
-		env->segment_break  = new_s;
+		env->segment_break = new_s;
 //		cprintf("This is my old brk: %p \n", old_s);
 //		cprintf("This is my new brk: %p \n", new_s);
 		return (void *)old_s;
 	} else if (is_updated == -1) {
-		env->segment_break = new_s;
-		return (void *)new_s;
+		env->segment_break -= increment;
+		return (void *)env->segment_break;
 	} else {
 
 		return (void*)-1;

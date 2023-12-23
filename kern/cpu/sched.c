@@ -211,18 +211,34 @@ struct Env* fos_scheduler_BSD()
 	//Your code is here
 	//Comment the following line
 //	panic("Not implemented yet");
-	return NULL;
+	//return NULL;
 
 	//[1] Place the curenv (if any) in its correct queue
-
+	if (curenv != NULL) {
+		enqueue(&env_ready_queues[curenv->priority], curenv);
+	}
 	//[2] Search for the next env in the queues according to their priorities
+	int next_env_prio = -1;
+	for (uint8 i = num_of_ready_queues-1; i >= 0; i--) {
+		if (queue_size(&env_ready_queues[i]) > 0) {
+			next_env_prio = i;
+			break;
+		}
+	}
 
 	//[3] If next env is found:
+	if (next_env_prio != -1) {
 	//		1. Set the CPU quantum
+		kclock_set_quantum(quantums[0]);
 	//		2. Remove the selected env from its queue and return it
+		return dequeue(&env_ready_queues[next_env_prio]);
+	} else {
 	//	  Else:
 	//		1. Reset load_avg for next run
+		load_avg = fix_int(0);
 	//		2. return NULL
+		return NULL;
+	}
 }
 
 //========================================
@@ -233,9 +249,18 @@ void clock_interrupt_handler()
 {
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
 	{
+		// Step 1: Update working set time stamps
+		update_WS_time_stamps();
 
+		// Step 2: Perform any additional BSD scheduler logic here, e.g., adjusting priorities, etc.
+		// Note: This section depends on your specific BSD scheduling algorithm.
 
+		// Step 3: Call the scheduler function to decide the next process to run
+		fos_scheduler();
 
+		/********DON'T CHANGE THIS LINE***********/
+		// Step 4: Increment the ticks count (assuming it represents clock ticks)
+		ticks++;
 	}
 
 

@@ -20,7 +20,7 @@ unsigned scheduler_method ;
 
 ///Scheduler Queues
 //=================
-struct Env_Queue env_new_queue;	// queue of all new envs
+struct Env_Queue env_new_queue;		// queue of all new envs
 //2015:
 struct Env_Queue env_exit_queue;	// queue of all exited envs
 //2018:

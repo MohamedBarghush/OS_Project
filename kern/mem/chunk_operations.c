@@ -191,7 +191,17 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 		pf_remove_env_page(e, virtual_address + (i*PAGE_SIZE));
 		// Free ONLY pages that are resident in the working set from the memory
 		env_page_ws_invalidate(e, virtual_address + (i*PAGE_SIZE));
+		if(isPageReplacmentAlgorithmFIFO() && e->page_last_WS_element == NULL)
+        {
+        	e->page_last_WS_element = LIST_FIRST(&e->page_WS_list);
+        }
 	}
+	while(e->page_last_WS_element != LIST_FIRST(&e->page_WS_list) && e->page_last_WS_element != NULL)
+    {
+    	struct WorkingSetElement* temp = LIST_FIRST(&e->page_WS_list);
+    	LIST_REMOVE(&e->page_WS_list,temp);
+    	LIST_INSERT_TAIL(&e->page_WS_list,temp);
+    }
 
 }
 
