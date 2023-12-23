@@ -47,6 +47,10 @@ int scheduler_status ;
 //2017
 //#define CLOCK_INTERVAL_IN_CNTS TIMER_DIV((1000/CLOCK_INTERVAL_IN_MS))
 
+//TODO: [PROJECT'23.MS3 - #2.5] GETTERS & SETTERS
+//load average
+fixed_point_t load_avg;
+
 /*2023*/
 /********* for BSD Priority Scheduler *************/
 #define PRI_MIN 0

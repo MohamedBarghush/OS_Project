@@ -194,8 +194,19 @@ struct Env* fos_scheduler_BSD()
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - fos_scheduler_BSD
 	//Your code is here
 	//Comment the following line
-	panic("Not implemented yet");
+//	panic("Not implemented yet");
 	return NULL;
+
+	//[1] Place the curenv (if any) in its correct queue
+
+	//[2] Search for the next env in the queues according to their priorities
+
+	//[3] If next env is found:
+	//		1. Set the CPU quantum
+	//		2. Remove the selected env from its queue and return it
+	//	  Else:
+	//		1. Reset load_avg for next run
+	//		2. return NULL
 }
 
 //========================================

@@ -101,7 +101,7 @@ void _main(void)
 
 	//char* tempArr = malloc(4*PAGE_SIZE);
 	sys_allocate_user_mem((uint32)tempArr, tempArrSize);
-	cprintf("1\n");
+	//cprintf("1\n");
 
 	int c;
 	for(c = 0;c < tempArrSize - 1;c++)
@@ -109,11 +109,11 @@ void _main(void)
 		tempArr[c] = 'a';
 	}
 
-	cprintf("2\n");
+	//cprintf("2\n");
 
 	sys_free_user_mem((uint32)tempArr, tempArrSize);
 
-	cprintf("3\n");
+	//cprintf("3\n");
 
 	//Check after free either push records up or leave them empty
 	for (i = PAGE_SIZE*0 ; i < PAGE_SIZE*6 ; i+=PAGE_SIZE/2)
@@ -123,11 +123,11 @@ void _main(void)
 		garbage4 = *ptr ;
 		garbage5 = *ptr2 ;
 	}
-	cprintf("4\n");
+	//cprintf("4\n");
 
 	//===================
 
-	cprintf("Checking PAGE FIFO algorithm after Free and replacement... \n");
+	//cprintf("Checking PAGE FIFO algorithm after Free and replacement... \n");
 	{
 		found = sys_check_WS_list(expectedFinalVAs, 11, 0x80b000, 1);
 		if (found != 1) panic("Page FIFO algo failed [AFTER Freeing an Allocated Space].. MAKE SURE to update the last_WS_element & the correct FIFO order after freeing space");

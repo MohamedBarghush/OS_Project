@@ -366,3 +366,7 @@ uint32 sys_perm_user (uint32 a1) {
 	return syscall(SYS_perm_user,a1,0,0,0,0);
 }
 
+//TODO: [PROJECT'23.MS3 - #0.5] [2] SYSRTEM CALLS
+void sys_env_set_nice(int32 a1){
+	syscall(SYS_env_set_nice,a1,0,0,0,0);
+}

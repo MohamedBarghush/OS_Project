@@ -33,12 +33,10 @@ void _main(void)
 	int freePages = sys_calculate_free_frames();
 	int usedDiskPages = sys_pf_calculate_allocated_pages();
 
-	cprintf("Here 1\n");
 	//Reading (Not Modified)
 	char garbage1 = arr[PAGE_SIZE*11-1] ;
 	char garbage2 = arr[PAGE_SIZE*12-1] ;
 	char garbage4,garbage5;
-	cprintf("Here 2\n");
 
 	//Writing (Modified)
 	int i ;

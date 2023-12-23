@@ -59,6 +59,8 @@ enum
 	//MS2
 	SYS_get_hard_limit,
 	SYS_perm_user,
+	//MS3
+	SYS_env_set_nice,
 	//=====================================================================
 	NSYSCALLS
 };

@@ -8,6 +8,9 @@
 #include <inc/trap.h>
 #include <inc/memlayout.h>
 
+//TODO: MS3
+#include <inc/fixed_point.h>
+
 // An environment ID 'envid_t' has three parts:
 //
 // +1+---------------21-----------------+--------10--------+
@@ -161,6 +164,14 @@ struct Env {
 	//2020
 	uint32 nPageIn, nPageOut, nNewPageAdded;
 	uint32 nClocks ;
+
+	//TODO:
+	//=====================
+	/*BSD SCHEDULER*/
+	//=====================
+	int32 nice; //Nice Value
+	uint32 sched_priority; //Priority of process
+	fixed_point_t recent_cpu;//Recent CPU
 
 };
 

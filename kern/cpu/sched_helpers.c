@@ -547,31 +547,53 @@ int env_get_nice(struct Env* e)
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_get_nice
 	//Your code is here
 	//Comment the following line
-	panic("Not implemented yet");
-	return 0;
+	//panic("Not implemented yet");
+	return e->nice;
 }
 void env_set_nice(struct Env* e, int nice_value)
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_set_nice
 	//Your code is here
 	//Comment the following line
-	panic("Not implemented yet");
+	//panic("Not implemented yet");
+
+	//[1] Update nice value of the given environment
+
+	//[2] If its status is NOT NEW, just update its priority without changing ready queues
+	//	  Else, do nothing
+
+	//setting nice value
+	e->nice = nice_value;
+
+	//setting recent cpu value to set priority
+	fixed_point_t load_avg_doubled = fix_scale(load_avg,2);
+
+	fixed_point_t temp = fix_div( load_avg_doubled , fix_add( load_avg_doubled ,  fix_int(1) )  ) ;
+
+	e->recent_cpu = fix_add( fix_mul(temp , e->recent_cpu) , fix_int(e->nice) ) ;
+
+	//setting priority
+	e->sched_priority = PRI_MAX - (2*(e->nice)) - fix_round(e->recent_cpu);
+
 }
 int env_get_recent_cpu(struct Env* e)
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_get_recent_cpu
 	//Your code is here
 	//Comment the following line
-	panic("Not implemented yet");
-	return 0;
+	//panic("Not implemented yet");
+	return fix_round( fix_scale(e->recent_cpu,100) ); //converting Recent CPU from fixed point to integer
+	//return 0;
 }
 int get_load_average()
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - get_load_average
 	//Your code is here
 	//Comment the following line
-	panic("Not implemented yet");
-	return 0;
+	//panic("Not implemented yet");
+	//return 0;
+	return fix_round( fix_scale(load_avg,100) ); //converting load avg from fixed point to integer
 }
 /********* for BSD Priority Scheduler *************/
 //==================================================================================//
+
