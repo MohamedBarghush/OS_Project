@@ -565,16 +565,23 @@ void env_set_nice(struct Env* e, int nice_value)
 	//setting nice value
 	e->nice = nice_value;
 
-	//setting recent cpu value to set priority
+	/*//setting recent cpu value to set priority
 	fixed_point_t load_avg_doubled = fix_scale(load_avg,2);
-
 	fixed_point_t temp = fix_div( load_avg_doubled , fix_add( load_avg_doubled ,  fix_int(1) )  ) ;
-
 	e->recent_cpu = fix_add( fix_mul(temp , e->recent_cpu) , fix_int(e->nice) ) ;
-
 	//setting priority
-	e->sched_priority = PRI_MAX - (2*(e->nice)) - fix_round(e->recent_cpu);
-
+	e->sched_priority = PRI_MAX - (2*(e->nice)) - fix_round(e->recent_cpu);*/
+	fixed_point_t temp = fix_unscale(e->recent_cpu,4);
+	if(e->env_status != ENV_NEW)
+	{
+		int32 prio_temp = (num_of_ready_queues - 1) - fix_round(temp) - (e->nice * 2);
+		if(prio_temp < PRI_MIN)
+			e->priority = PRI_MIN;
+		else if (prio_temp > num_of_ready_queues - 1)
+			e->priority = num_of_ready_queues - 1;
+		else
+			e->priority = prio_temp;
+	}
 }
 int env_get_recent_cpu(struct Env* e)
 {
@@ -582,7 +589,7 @@ int env_get_recent_cpu(struct Env* e)
 	//Your code is here
 	//Comment the following line
 	//panic("Not implemented yet");
-	return fix_round( fix_scale(e->recent_cpu,100) ); //converting Recent CPU from fixed point to integer
+	return fix_round(fix_scale(e->recent_cpu,100)); //converting Recent CPU from fixed point to integer
 	//return 0;
 }
 int get_load_average()
@@ -592,8 +599,7 @@ int get_load_average()
 	//Comment the following line
 	//panic("Not implemented yet");
 	//return 0;
-	return fix_round( fix_scale(load_avg,100) ); //converting load avg from fixed point to integer
+	return fix_round(fix_scale(load_avg,100)); //converting load avg from fixed point to integer
 }
 /********* for BSD Priority Scheduler *************/
 //==================================================================================//
-

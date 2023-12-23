@@ -23,9 +23,9 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 	kinit.start = daStart;
 	kinit.segment_break = daStart + initSizeToAllocate;
 	kinit.hard_limit = daLimit;
-
+	uint32 new_start = kinit.start;
 	// Loop through the kernel heap memory region and allocate frames
-	for (uint32 i = kinit.start; i < kinit.hard_limit; i += PAGE_SIZE) {
+	for (uint32 i = 0; i < ROUNDUP(initSizeToAllocate,PAGE_SIZE) / PAGE_SIZE; i++) {
 	    // Declare a pointer to a FrameInfo structure and initialize it to NULL
 	    struct FrameInfo *pfi = NULL;
 
@@ -34,9 +34,10 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 	        // If allocation fails, return the error code E_NO_MEM
 	        return E_NO_MEM;
 	    }
-	    pfi->va = i;
+	    pfi->va = new_start;
 	    // Map the allocated frame to the specified address i in the page directory
-	    map_frame(ptr_page_directory, pfi, i, PERM_WRITEABLE);
+	    map_frame(ptr_page_directory, pfi, new_start, PERM_WRITEABLE);
+	    new_start += PAGE_SIZE;
 	}
 
 	// Initialize the dynamic allocator for the kernel heap
@@ -47,8 +48,7 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 
 }
 
-void* sbrk(int increment)
-{
+void* sbrk(int increment) {
 	//TODO: [PROJECT'23.MS2 - #02] [1] KERNEL HEAP - sbrk()
 	/* increment > 0: move the segment break of the kernel to increase the size of its heap,
 	 * 				you should allocate pages and map them into the kernel virtual address space as necessary,
@@ -64,76 +64,80 @@ void* sbrk(int increment)
 	 * 	3) Allocating additional pages for a kernel dynamic allocator will fail if the free frames are exhausted
 	 * 		or the break exceed the limit of the dynamic allocator. If sbrk fails, kernel should panic(...)
 	 */
+	uint32 old_brk = kinit.segment_break;
 
-	// Save the current state of the segment break
-	uint32 old_sbrk = kinit.segment_break;
-	uint32 current_sbrk = kinit.segment_break;
-	bool is_updated = 0;
+	if (increment == 0)
+		return (void *)old_brk;
 
-	// Declare a pointer to a FrameInfo structure and an integer pointer
-	struct FrameInfo *ptrNewFrame = NULL;
-	uint32 *x = NULL; // Replace NULL with an appropriate initial value
-
-	// If increment is 0, return the current segment break
-	if (increment == 0) {
-	    return (void *)old_sbrk;
-	}
-
-	// Check if increasing the segment break would exceed the hard limit
-	if (current_sbrk + increment > kinit.hard_limit) {
-	    panic("cannot allocate memory, exceeded hard limit");
-	}
-
-	// Increase the segment break if increment is positive
-	if (increment > 0) {
-	    // Calculate the number of needed pages
-	    int needed_pages = ROUNDUP(increment, PAGE_SIZE) / PAGE_SIZE;
-	    current_sbrk += needed_pages * PAGE_SIZE;
-
-	    // Allocate frames and map them to the corresponding addresses
-	    for (int i = old_sbrk; i < current_sbrk; i += PAGE_SIZE) {
-	        ptrNewFrame = NULL;
-	        allocate_frame(&ptrNewFrame);
-	        ptrNewFrame->va = i;
-	        map_frame(ptr_page_directory, ptrNewFrame, i, PERM_WRITEABLE);
-	    }
-
-	    // Set the update flag to true
-	    is_updated = 1;
-	}
-	// Decrease the segment break if increment is negative
-	else if (increment < 0) {
-	    if (-increment > PAGE_SIZE) {
-	    	// Calculate the number of needed pages
-			int needed_pages = ROUNDDOWN(-increment, PAGE_SIZE) / PAGE_SIZE;
-			current_sbrk += increment;
-
-			// Free frames and unmap them from the corresponding addresses
-			for (int i = old_sbrk; i > current_sbrk; i -= PAGE_SIZE) {
-//				ptrNewFrame = get_frame_info(ptr_page_directory, i, &x);
-//				free_frame(ptrNewFrame);
-				unmap_frame(ptr_page_directory, i);
+	if (increment > 0)
+	{
+		uint32 true_brk = ROUNDUP(old_brk + increment, PAGE_SIZE);
+		if (true_brk <= kinit.hard_limit)
+		{
+			uint32 temp = old_brk;
+			uint32 old_break = old_brk + PAGE_SIZE;
+			if (PTX(old_brk + increment) != PTX(old_brk - 1))
+			{
+				bool flag = 0;
+				uint32 *ptrPage;
+				struct FrameInfo* ptr_info = get_frame_info(ptr_page_directory, old_brk, &ptrPage);
+				if (old_brk % PAGE_SIZE == 0 &&  ptr_info == 0)
+				{
+					flag = 1;
+					struct FrameInfo *ptr_temp = NULL;
+					int ret = allocate_frame(&ptr_temp);
+					if (ret == 0)
+					{
+						map_frame(ptr_page_directory, ptr_temp, old_brk, PERM_WRITEABLE);
+						ptr_temp->va = old_brk;
+					}
+				}
+				int num_pages = ROUNDUP(increment, PAGE_SIZE) / PAGE_SIZE;
+				if (flag)
+				{
+					num_pages--;
+				}
+				for (int i = 0; i < num_pages; i++) {
+					struct FrameInfo *ptr_frame_info = NULL;
+					if (allocate_frame(&ptr_frame_info) == 0)
+					{
+						map_frame(ptr_page_directory, ptr_frame_info, old_break, PERM_WRITEABLE);
+						ptr_frame_info->va = old_break;
+					}
+					old_break += PAGE_SIZE;
+				}
 			}
-	    } else {
-	    	current_sbrk += increment;
-	    }
-
-	    // Set the update flag to true
-	    is_updated = -1;
+			kinit.segment_break = true_brk;
+			return (void *)temp;
+		}
 	}
-
-	// Update the segment break if there was an update
-	if (is_updated == 1) {
-	    kinit.segment_break = current_sbrk;
-	    return (void *)old_sbrk;
-	} else if (is_updated == -1) {
-		kinit.segment_break = current_sbrk;
-		return (void *)current_sbrk;
-	} else {
-	    // Handle error appropriately (return NULL, set an error code, etc.)
-	    panic("cannot allocate/deallocate memory");
-	    return NULL;  // Added return NULL to suppress a warning
+	if (increment < 0)
+	{
+		increment *= -1;
+		if (old_brk - increment >= kinit.start)
+		{
+			if (PTX(old_brk - increment) != PTX(old_brk - 1))
+			{
+				uint32 old_break = old_brk - 1;
+				int num_pages = ROUNDUP(increment, PAGE_SIZE) / PAGE_SIZE;
+				int i = 0;
+				while(i < num_pages)
+				{
+					unmap_frame(ptr_page_directory, old_break);
+					old_break -= PAGE_SIZE;
+					if (old_break - (old_brk - increment) < PAGE_SIZE)
+						break;
+					 i++;
+				}
+			}
+			kinit.segment_break -= increment;
+			return (void *)kinit.segment_break;
+		}
 	}
+	return (void *)-1;
+	//MS2: COMMENT THIS LINE BEFORE START CODING====
+	//return (void*)-1 ;
+	//panic("not implemented yet");
 }
 
 struct kheap_data kData[NUM_OF_KHEAP_PAGES];

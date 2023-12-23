@@ -5,7 +5,7 @@
 #ifndef FOS_KERNEL
 # error "This is a FOS kernel header; user programs should not #include it"
 #endif
-
+#include <inc/fixed_point.h>
 #include <inc/environment_definitions.h>
 #include <inc/fixed_point.h>
 #include <kern/cpu/sched_helpers.h>
@@ -20,7 +20,7 @@ unsigned scheduler_method ;
 
 ///Scheduler Queues
 //=================
-struct Env_Queue env_new_queue;		// queue of all new envs
+struct Env_Queue env_new_queue;	// queue of all new envs
 //2015:
 struct Env_Queue env_exit_queue;	// queue of all exited envs
 //2018:
@@ -49,7 +49,6 @@ int scheduler_status ;
 
 //TODO: [PROJECT'23.MS3 - #2.5] GETTERS & SETTERS
 //load average
-fixed_point_t load_avg;
 
 /*2023*/
 /********* for BSD Priority Scheduler *************/
@@ -60,6 +59,7 @@ int64 timer_ticks() ;
 struct Env* fos_scheduler_BSD();
 void sched_init_BSD(uint8 numOfLevels, uint8 quantum);
 uint32 isSchedMethodBSD();
+fixed_point_t load_avg;
 /********* for BSD Priority Scheduler *************/
 
 void sched_init_RR(uint8 quantum);

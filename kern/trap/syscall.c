@@ -385,6 +385,10 @@ uint32 sys_get_hard_limit()
 	return curenv->hard_limit;
 }
 
+void sys_env_set_nice(int32 val){
+	env_set_nice(curenv , val);
+}
+
 int sys_perm_user (uint32 va) {
 //	if (pt_get_page_permissions(curenv->env_page_directory, va) == TABLE_NOT_EXIST) {
 //		void* var2 = create_page_table(curenv->env_page_directory, va);
@@ -616,6 +620,10 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 	case SYS_free_user_mem:
 		ErrorDetection (a1,a2);
 		sys_free_user_mem(a1, a2);
+		return 0;
+
+	case SYS_env_set_nice:
+		sys_env_set_nice(a1);
 		return 0;
 	//=====================================================================
 	case SYS_cputs:

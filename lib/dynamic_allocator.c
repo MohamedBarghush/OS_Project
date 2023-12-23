@@ -126,12 +126,10 @@ void *alloc_block_FF(uint32 size)
 	{
 		uint32 required_size = size + sizeOfMetaData();
 		uint32 da_start = (uint32)sbrk(required_size);
-		// get new break since it's page aligned! thus, the size can be more than the required one
+		//get new break since it's page aligned! thus, the size can be more than the required one
 		uint32 da_break = (uint32)sbrk(0);
 		initialize_dynamic_allocator(da_start, da_break - da_start);
 	}
-
-
 	//empty size case
 	if (size == 0)
 	{
@@ -140,17 +138,13 @@ void *alloc_block_FF(uint32 size)
 
 	struct BlockMetaData *myBlock = NULL;
 	struct BlockMetaData *newBlock = NULL;
-
-	LIST_FOREACH(myBlock, &memBlockList) {
-
+	LIST_FOREACH(myBlock, &memBlockList)
+	{
 		if (myBlock->is_free) {
-
 			//saving the actual size of block in this variable
 			int actualSize = myBlock->size - sizeOfMetaData();
-
 			//case 1: if block can fit into free space easily
 			if (actualSize > size + sizeOfMetaData()) {
-
 				//initializing the new metadata block
 				newBlock = (struct BlockMetaData *)((char *)myBlock + sizeOfMetaData() + size);
 //				newBlock = (struct BlockMetaData *)((uint32)newBlock | 0x00001000);
@@ -163,49 +157,22 @@ void *alloc_block_FF(uint32 size)
 				myBlock->is_free = 0;
 				//setting its size
 				myBlock->size = size+sizeOfMetaData();
-				if (newBlock) {
-
+				if (newBlock)
+				{
 					LIST_INSERT_AFTER(&memBlockList, myBlock, newBlock);
-
 				}
-
-
 				return (void *)(myBlock + 1);
-
 			}
 			// case 2: if block exactly fits in free space
-			else if (actualSize == size + sizeOfMetaData()) {
-
+			else if (actualSize == size + sizeOfMetaData())
+			{
 				//setting block status as not free
 				myBlock->is_free = 0;
-
 				return (void *)(myBlock + 1);
-
 			}
-			//case 3: if block doesn't fit in free space
-			else {
-
-				//case 3.1:if data block fits
-				if (actualSize >= size) {
-
-
-					myBlock->is_free=0;
-					return (void *)(myBlock+1);
-
-
-				}//if its the last block
-				if (myBlock->prev_next_info.le_next == NULL) {
-					// allocate new block
-					struct BlockMetaData *new_block = (struct BlockMetaData *)sbrk(size + sizeOfMetaData());
-					if ((void *)new_block == (void *)-1) {
-						return NULL;
-					}
-					new_block->is_free = 1;
-					new_block->size = ROUNDUP(size + sizeOfMetaData(), PAGE_SIZE);
-					LIST_INSERT_TAIL(&memBlockList, new_block);
-//					free_block((void*)(new_block + 1));
-					return alloc_block_FF(size);
-				}
+			else if(actualSize >= size) {
+				myBlock->is_free=0;
+				return (void *)(myBlock+1);
 			}
 		}
 	}
@@ -218,11 +185,7 @@ void *alloc_block_FF(uint32 size)
 	new_block->is_free = 1;
 	new_block->size = ROUNDUP(size + sizeOfMetaData(), PAGE_SIZE);
 	LIST_INSERT_TAIL(&memBlockList, new_block);
-//	free_block((void*)(new_block + 1));
 	return alloc_block_FF(size);
-
-
-	return (void *)(myBlock + 1);
 }
 //=========================================
 // [5] ALLOCATE BLOCK BY BEST FIT:
@@ -238,10 +201,6 @@ void *alloc_block_BF(uint32 size)
 
 
 //its like FF by 95% m3ada bas in block to allocate
-
-
-
-
 	if (size == 0) {
 	    return NULL;
 	}

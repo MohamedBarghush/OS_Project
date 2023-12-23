@@ -170,18 +170,19 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 	//clearing ready queues
 	sched_delete_ready_queues();
 
-	env_ready_queues = kmalloc(numOfLevels * sizeof(struct Env_Queue));
 
 	//updating number of ready queues after allocation
+	load_avg = fix_int(0);
 	num_of_ready_queues = numOfLevels;
+	env_ready_queues = kmalloc(numOfLevels * sizeof(struct Env_Queue));
 	//allocating memory for quantums according to number of quantums
 	quantums = kmalloc(sizeof(uint8));
 	quantums[0] = quantum;
-	kclock_set_quantum(quantums[0]);
 	for(int i = 0 ; i < numOfLevels; i++)
 	{
 		init_queue(&(env_ready_queues[i]));
 	}
+	kclock_set_quantum(quantums[0]);
 
 	//=========================================
 	//DON'T CHANGE THESE LINES=================
@@ -214,31 +215,43 @@ struct Env* fos_scheduler_BSD()
 	//return NULL;
 
 	//[1] Place the curenv (if any) in its correct queue
-	if (curenv != NULL) {
-		enqueue(&env_ready_queues[curenv->priority], curenv);
+	if(curenv!=NULL){
+		enqueue(&(env_ready_queues[curenv->priority]),curenv);
 	}
-	//[2] Search for the next env in the queues according to their priorities
-	int next_env_prio = -1;
-	for (uint8 i = num_of_ready_queues-1; i >= 0; i--) {
-		if (queue_size(&env_ready_queues[i]) > 0) {
-			next_env_prio = i;
-			break;
+	//=========================================
+	// if(flag==0){
+		int que_size = queue_size(&(env_ready_queues[0]));
+		for(int i = 0 ; i < que_size ; i++){
+			struct Env * env_iterator;
+			env_iterator = dequeue(&(env_ready_queues[0]));
+			fixed_point_t recentCpu = fix_int(env_get_recent_cpu(env_iterator)/4);
+			int pri = (num_of_ready_queues - 1) - fix_round(recentCpu) - (env_get_nice(env_iterator) * 2);
+			if(pri < PRI_MIN)
+				env_iterator->priority = PRI_MIN;
+			else if(pri > num_of_ready_queues - 1)
+				env_iterator->priority = num_of_ready_queues - 1;
+			else
+				env_iterator->priority = pri;
+			if(env_iterator->priority != 0){
+				enqueue(&(env_ready_queues[env_iterator->priority]),env_iterator);
+			}
+			else{
+				enqueue(&(env_ready_queues[0]),env_iterator);
+			}
+		}
+	// }
+	//=========================================
+
+	for(int i = num_of_ready_queues-1 ; i >= 0 ; i--){
+		if(queue_size(&(env_ready_queues[i])) != 0){
+			struct Env* returned_env;
+			returned_env = dequeue(&(env_ready_queues[i]));
+			kclock_set_quantum(quantums[0]);
+			return returned_env;
 		}
 	}
-
-	//[3] If next env is found:
-	if (next_env_prio != -1) {
-	//		1. Set the CPU quantum
-		kclock_set_quantum(quantums[0]);
-	//		2. Remove the selected env from its queue and return it
-		return dequeue(&env_ready_queues[next_env_prio]);
-	} else {
-	//	  Else:
-	//		1. Reset load_avg for next run
-		load_avg = fix_int(0);
-	//		2. return NULL
-		return NULL;
-	}
+	load_avg = fix_int(0);
+	return NULL;
 }
 
 //========================================
@@ -249,20 +262,75 @@ void clock_interrupt_handler()
 {
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
 	{
-		// Step 1: Update working set time stamps
-		update_WS_time_stamps();
+		if(curenv != NULL)
+		{
+			curenv->recent_cpu = fix_add(curenv->recent_cpu,fix_int(1));
+		}
+		int temp = (1000 % quantums[0] == 0)? 0: 1;
+		if ((ticks + 1) % (1000 / quantums[0] + temp) == 0){
+			cprintf("%d\n",quantums[0]);
+			fixed_point_t frac_1 = fix_int(59/60);
+			fixed_point_t frac_2 = fix_int(1/60);
+			fixed_point_t result_1, result_2, final_result;
+			int num_of_processess = 0;
 
-		// Step 2: Perform any additional BSD scheduler logic here, e.g., adjusting priorities, etc.
-		// Note: This section depends on your specific BSD scheduling algorithm.
+			for (int i=0 ; i<num_of_ready_queues ; i++){
+				num_of_processess += queue_size(&(env_ready_queues[i]));
+			}
+			if(curenv != NULL)
+				num_of_processess += 1;
+			result_1 = fix_mul(frac_1,load_avg);
+			result_2 = fix_scale(frac_2,num_of_processess);
+			load_avg = fix_add(result_1,result_2);
 
-		// Step 3: Call the scheduler function to decide the next process to run
-		fos_scheduler();
+			for(int i = 0 ; i<num_of_ready_queues ; i++){
+				struct Env * env_iterator;
+				LIST_FOREACH(env_iterator,&(env_ready_queues[i])){
+					//env ready queue update
 
-		/********DON'T CHANGE THIS LINE***********/
-		// Step 4: Increment the ticks count (assuming it represents clock ticks)
-		ticks++;
+					fixed_point_t n2 = fix_scale(load_avg,2);
+					fixed_point_t d2 = fix_add(fix_scale(load_avg,2),fix_int(1));
+					fixed_point_t first_part = fix_div(n2,d2);
+					fixed_point_t second_part = fix_mul(first_part,env_iterator->recent_cpu);
+					env_iterator->recent_cpu = fix_add(second_part,fix_int(env_iterator->nice));
+				}
+			}
+		}
+
+		if((ticks + 1) % 4 == 0){
+			fixed_point_t second_part = fix_unscale(curenv->recent_cpu,4);
+			int priority_result = (num_of_ready_queues - 1) - fix_round(second_part) - (env_get_nice(curenv)*2);
+			if(priority_result < PRI_MIN){
+				curenv->priority = PRI_MIN;
+			}
+			else if(priority_result > (num_of_ready_queues - 1)){
+				curenv->priority = (num_of_ready_queues - 1);
+			}
+			else
+				curenv->priority = priority_result;
+
+			for(int i = 0 ; i < num_of_ready_queues ; i++){
+				struct Env * env_iterator;
+				LIST_FOREACH(env_iterator,&(env_ready_queues[i])){
+					fixed_point_t second_part = fix_unscale(env_iterator->recent_cpu,4); //fix_int(env_get_recent_cpu(env_iterator)/4);
+					int priority_result = (num_of_ready_queues - 1) - fix_round(second_part) - (env_get_nice(env_iterator)*2);
+					if(priority_result < PRI_MIN){
+						env_iterator->priority = PRI_MIN;
+					}
+					else if(priority_result > (num_of_ready_queues - 1)){
+						env_iterator->priority = (num_of_ready_queues - 1);
+					}
+					else
+						env_iterator->priority = priority_result;
+					if(env_iterator->priority != i)
+					{
+						remove_from_queue(&(env_ready_queues[i]),env_iterator);
+						enqueue(&(env_ready_queues[env_iterator->priority]),env_iterator);
+					}
+				}
+			}
+		}
 	}
-
 
 	/********DON'T CHANGE THIS LINE***********/
 	ticks++ ;
@@ -274,7 +342,6 @@ void clock_interrupt_handler()
 	fos_scheduler();
 	/*****************************************/
 }
-
 //===================================================================
 // [9] Update LRU Timestamp of WS Elements
 //	  (Automatically Called Every Quantum in case of LRU Time Approx)
@@ -339,4 +406,3 @@ void update_WS_time_stamps()
 		}
 	}
 }
-

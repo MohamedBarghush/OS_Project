@@ -382,27 +382,13 @@ int process_command(int number_of_arguments, char** arguments)
 	    //Comment the following line before start coding...
 
 	    int __is___found = 0;
-
-	    char   *matched_commands_with_most_size[NUM_OF_COMMANDS];
-
-
-	    int   arr_size = 0;
-
-	    // uppercase to lower
-//	    str2lower(arguments[0], arguments[0]);
-
-
-	    for  (int  i  =  0 ;  i  <  NUM_OF_COMMANDS ;  i++ ) {
-
-	    	//compare to arg with commands
-
-	        if  (  strcmp(  arguments [0] ,  commands[ i ]. name)  ==  0) {
-
+	    char *matched_commands_with_most_size[NUM_OF_COMMANDS];
+	    int arr_size = 0;
+	    for (int  i  =  0 ;  i  <  NUM_OF_COMMANDS ;  i++ ) {
+	        if (  strcmp(  arguments [0] ,  commands[ i ]. name)  ==  0) {
 	        	//  found command
-
-	            if   ( number_of_arguments  -  1  ==    commands[i].num_of_args) {
-
-
+	            if ( number_of_arguments  -  1  ==    commands[i].num_of_args) {
+	            	LIST_INSERT_TAIL(&foundCommands, &commands[i]);
 	                return i;
 
 	            }
